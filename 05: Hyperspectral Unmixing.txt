@@ -1,0 +1,47 @@
+05: Hyperspectral Unmixing
+
+Title: Exploring hyperspectral imagery for unmixing vegetation classes
+
+
+Abstract: Terrestrial ecosystems are often highly complex, with
+interactions between topography, soil composition, and climate 
+creating fine-scale mosaics of vegetation cover. This leads to 
+mixed pixels as spatial resolutions common in satellite imagery, 
+and therefore unmixing vegetation cover is needed to fully capture 
+vegetation dynamics. Imaging spectroscopy provides enhanced spectral
+feature resolution, and may therefore be beneficial in 
+distinguishing between relatively similar vegetation classes as 
+compared to broad-band imagery. To this end, numerous narrowband 
+indices have been developed to enhance the relationships with 
+specific vegetation properties. In this project, you will explore
+the capabilities of hyperspectral imagery for mapping vegetation 
+class fractions in California. You may explore the use of
+hyperspectral indices to enhance mapping efforts, and draw 
+comparisons to Landsat-based analyses. You may further use the 
+Landsat imagery to explore the effect of acquisition date on
+model performance. 
+
+
+Research Questions: 
+
+1)	How can hyperspectral imagery or derived narrowband indices 
+    be used to better map vegetation class fractions as compared 
+    to multispectral imagery?
+
+2)	Using multi-temporal multispectral imagery, explore how 
+    acquisition date can influence accuracy of the regression
+
+
+Related Reading:
+
+Cooper et al. (2020):
+Disentangling fractional vegetation cover: 
+Regression-based unmixing of simulated spaceborne imaging 
+spectroscopy data. Remote Sensing of Environment, 246. 
+DOI: 10.1016/j.rse.2020.111856
+
+
+Roberts et al. (2018): 
+Hyperspectral vegetation indices. In:
+Hyperspectral indices and image classifications 
+for agriculture and vegetation. 
