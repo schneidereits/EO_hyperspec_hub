@@ -1,5 +1,3 @@
-# 23.6.2021
-# Data processing 
 
 # Library ----
 
@@ -34,95 +32,36 @@ landsat_files <- list.files("O:/SS21_EO/Hyperspectral/data/landsat/")
 landsat_BOA_files <- landsat_files[grepl("BOA", landsat_files)]
 landsat_QAI_files <- landsat_files[grepl("QAI", landsat_files)]
 
-# QAI raster 
-QAI <- raster(paste0("O:/SS21_EO/Hyperspectral/data/landsat/",c("20130102"), "_LEVEL2_LND07_QAI",".tif"))
-plot(QAI)
-(QAI_count <- freq(QAI) %>% as.data.frame() %>% arrange(-count))
 
 
-# stack all the BOA
-stack <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_BOA_files[1:2])) # change to 60 or n 
-plot(stack)
-
-
-
-# Extent cropping 
+# define extent
 (ext_scene_one <- extent(stack))
 (ext_scene_two <- extent(hyperspec))
 (common.extent <- intersect(ext_scene_one, ext_scene_two))
 roi <- c(496665, 568665 , 4261665 , 4276665 )
-multispec <- crop(stack, roi)
-plot(multispec)
 
-
-# Creating a cloud mask ----
-
-# Define function to find fill values from Landsat BQA
-fill_pixels <- function(x) {intToBits(x)[1] == T}
-
-# high confidence clouds or high confidence cloud shadows or fill values
-a_pixels <- function(x) {
-  all(intToBits(x)[c(1)] == T) | 
-    all(intToBits(x)[c(6,7)] == T) | 
-    all(intToBits(x)[c(8,9)] == T)}
-
-# high and medium confidence clouds or high and medium confidence cloud shadows or fill values 
-b_pixels <- function(x) {
-  all(intToBits(x)[c(1)] == T) | 
-    all(intToBits(x)[c(6,7)] == T) | 
-    intToBits(x)[c(7)] == T |
-    all(intToBits(x)[c(8,9)] == T) | 
-    intToBits(x)[c(9)] == T}
-
-mask_a <- calc(QAI, fun = a_pixels)
-mask_b <- calc(QAI, fun = b_pixels)
-
-plot(mask_a)
-plot(mask_b)
-
-
-# synthetic endmember mixing
-
-# Generating synthetic training data using the spectral lib
-
-# 23.6.2021
-# Data processing 
-
-# Library ----
-
-library(tidyverse)
-library(rgdal)
-library(raster)
-library(randomForest)
-
-
-## hyper spec ----
-
-### Import and manipulation ----
-
-# hyperspectral data 
-hyperspec <- raster("O:/SS21_EO/Hyperspectral/data/enmap/2013SU_BA_ENMAP_L2SIM.bsq")
-plot(hyperspec)
-
-# extract training data point from hyperspec stack
-hyperspec_df <- raster::extract(hyperspec, training_data, sp=T) 
-
-# save as df and remove coords
-df <- as.data.frame(hyperspec_df) %>% 
-  dplyr::select(-coords.x1, -coords.x2)# %>% mutate(classID = as.factor(classID))
-
-# creating narrow band indices ----
-
-
-## multi-temporal data ----
-
-# import files
-landsat_files <- list.files("O:/SS21_EO/Hyperspectral/data/landsat/")
-landsat_BOA_files <- landsat_files[grepl("BOA", landsat_files)]
-landsat_QAI_files <- landsat_files[grepl("QAI", landsat_files)]
 
 # QAI raster 
-QAI <- raster(paste0("O:/SS21_EO/Hyperspectral/data/landsat/",c("20130102"), "_LEVEL2_LND07_QAI",".tif"))
+for (i in c(1:2)) {
+  stack <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_QAI_files[i]))
+  
+  stack <- crop(stack, roi)
+  mask <- calc(stack, fun = fill_pixels)
+  
+  if (i==1) {
+    final_mask_stack <- mask
+    
+  } else { 
+    
+    final_mask_stack <- stack(final_mask_stack, mask)
+
+  }
+}
+
+plot(final_mask_stack)
+
+
+QAI <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_QAI_files[59:60]))
 plot(QAI)
 (QAI_count <- freq(QAI) %>% as.data.frame() %>% arrange(-count))
 
@@ -139,36 +78,78 @@ plot(stack)
 (common.extent <- intersect(ext_scene_one, ext_scene_two))
 roi <- c(496665, 568665 , 4261665 , 4276665 )
 multispec <- crop(stack, roi)
+QAI <- crop(QAI, roi)
 plot(multispec)
-
+plot(QAI)
 
 # Creating a cloud mask ----
 
-# Define function to find fill values from Landsat BQA
-fill_pixels <- function(x) {intToBits(x)[1] == T}
 
-# high confidence clouds or high confidence cloud shadows or fill values
-a_pixels <- function(x) {
-  all(intToBits(x)[c(1)] == T) | 
-    all(intToBits(x)[c(6,7)] == T) | 
-    all(intToBits(x)[c(8,9)] == T)}
+mask_highconf <- function(x){
+  bs <- intToBits(x)
+  return ( ((bs[1]) | (bs[6] & bs[7]) | (bs[8] & bs[9])) == T)
+}
 
-# high and medium confidence clouds or high and medium confidence cloud shadows or fill values 
-b_pixels <- function(x) {
-  all(intToBits(x)[c(1)] == T) | 
-    all(intToBits(x)[c(6,7)] == T) | 
-    intToBits(x)[c(7)] == T |
-    all(intToBits(x)[c(8,9)] == T) | 
-    intToBits(x)[c(9)] == T}
+fill_pixels <- function(x) {((intToBits(x)[1] == T))}
 
-mask_a <- calc(QAI, fun = a_pixels)
-mask_b <- calc(QAI, fun = b_pixels)
+for (i in length(QAI)) {
+  mask <- calc(QAI[[i]], fun = pixels)
+}
 
-plot(mask_a)
-plot(mask_b)
+mask <- calc(QAI, fun = fill_pixels)
+plot(mask)
 
+# Creating spectral temporal metrics ----
 
 # synthetic endmember mixing
+
+sli <- read.csv("data/gcg_eo_s09/S2_EM.txt")
+sli_snythmix <- sli
+head(sli)
+sli$wavelength <- c(493, 560, 665, 704, 740, 783, 883, 865, 1610, 2190)
+sli_long <- sli %>% 
+  pivot_longer(names_to = "type", values_to = "reflectance", cols = c(2:5))
+
+
+ggplot(sli_long, aes(x=wavelength, y= reflectance, color=type)) +
+  geom_line() +
+  theme_classic()
+
+
+# Let´s now model a "mixed pixel". ----
+# We can simply do this be defining proportions of the different surface components.
+fraction_PV <- 0.1
+fraction_NPV <- 0.8
+fraction_soil <- 0.05
+fraction_shade <- 0.05
+
+# Do we violate the assumption that all surface components represent 100% of the surface area?
+if((fraction_PV + fraction_NPV + fraction_soil+ fraction_shade) != 1) print('Fractions don´t sum to 1.')
+
+# Create a linear mixture of the endmember spectra, based on the defined proportions.
+model_spectrum <- fraction_PV * sli$PV + 
+  fraction_NPV * sli$NPV +
+  fraction_soil * sli$soil + 
+  fraction_shade * sli$shade
+
+# We could simulate imperfect measurements by adding random noise.
+noise <- rnorm(10, mean=0, sd=0.02)
+
+# Append the modeled spectrum to the endmembers data.frame
+sli$model_spectrum <- model_spectrum + noise
+
+# Convert the spectra into long format for plotting with ggplot2
+sli_vis <- pivot_longer(sli, -c(band, wavelength)) 
+
+# Visualize the modeled spectrum in comparison to the endmember spectra
+ggplot(sli_vis) + 
+  geom_line(aes(x=wavelength, y=value, color=name, linetype=name))+
+  scale_color_manual(values=c("black", "steelblue", "darkgreen", "darkgrey","firebrick"), name="Spectrum")+
+  scale_linetype_manual(values=c("dotdash", rep("solid", 4)), name="Spectrum")+
+  scale_y_continuous(labels=seq(0,1,0.1), breaks=seq(0,10000,1000))+
+  theme_bw()+
+  theme(panel.grid=element_blank())+
+  labs(x="Wavelength (nm)", y="Reflectance")
 
 # Generating synthetic training data using the spectral lib
 
@@ -463,6 +444,7 @@ get_density <- function(x, y,...) { # set x and y to predicted and observed valu
   ii <- cbind(ix, iy)
   return(dens$z[ii])
 }
+
 
 
 
