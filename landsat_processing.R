@@ -8,7 +8,26 @@ library(rgdal)
 library(raster)
 library(randomForest)
 
-# data manipulation ----
+
+## hyper spec ----
+
+### Import and manipulation ----
+
+# hyperspectral data 
+hyperspec <- raster("O:/SS21_EO/Hyperspectral/data/enmap/2013SU_BA_ENMAP_L2SIM.bsq")
+plot(hyperspec)
+
+# extract training data point from hyperspec stack
+hyperspec_df <- raster::extract(hyperspec, training_data, sp=T) 
+
+# save as df and remove coords
+df <- as.data.frame(hyperspec_df) %>% 
+  dplyr::select(-coords.x1, -coords.x2)# %>% mutate(classID = as.factor(classID))
+
+# creating narrow band indices ----
+
+
+## multi-temporal data ----
 
 # import files
 landsat_files <- list.files("O:/SS21_EO/Hyperspectral/data/landsat/")
@@ -20,7 +39,23 @@ QAI <- raster(paste0("O:/SS21_EO/Hyperspectral/data/landsat/",c("20130102"), "_L
 plot(QAI)
 (QAI_count <- freq(QAI) %>% as.data.frame() %>% arrange(-count))
 
-# Creating a cloud mask
+
+# stack all the BOA
+stack <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_BOA_files[1:2])) # change to 60 or n 
+plot(stack)
+
+
+
+# Extent cropping 
+(ext_scene_one <- extent(stack))
+(ext_scene_two <- extent(hyperspec))
+(common.extent <- intersect(ext_scene_one, ext_scene_two))
+roi <- c(496665, 568665 , 4261665 , 4276665 )
+multispec <- crop(stack, roi)
+plot(multispec)
+
+
+# Creating a cloud mask ----
 
 # Define function to find fill values from Landsat BQA
 fill_pixels <- function(x) {intToBits(x)[1] == T}
@@ -45,18 +80,43 @@ mask_b <- calc(QAI, fun = b_pixels)
 plot(mask_a)
 plot(mask_b)
 
-(ext_scene_one <- extent(stack))
-(ext_scene_two <- extent(hyperspec))
-(common.extent <- intersect(ext_scene_one, ext_scene_two))
-roi <- c(496665, 568665 , 4261665 , 4276665 )
-multispec <- crop(stack, roi)
-plot(multispec)
 
-# stack all the BOA
-stack <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_BOA_files[1:2])) # change to 60 or n 
-plot(stack)
+# synthetic endmember mixing
 
-# hyperspectral data 
-hyperspec <- raster("O:/SS21_EO/Hyperspectral/data/enmap/2013SU_BA_ENMAP_L2SIM.bsq")
-plot(hyperspec)
+# Generating synthetic training data using the spectral lib
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
