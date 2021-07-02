@@ -134,15 +134,9 @@ mask_highconf <- function(x){
 
 fill_pixels <- function(x) {((intToBits(x)[1] == T))}
 
-<<<<<<< HEAD
-# Creating temporal metrics ----
-
-# synthetic endmember mixing- ---
-=======
 for (i in length(QAI)) {
   mask <- calc(QAI[[i]], fun = pixels)
 }
->>>>>>> c9f4f53a204d3b1f248b8fc8a933bcbb211867e0
 
 mask <- calc(QAI, fun = fill_pixels)
 plot(mask)
@@ -552,9 +546,8 @@ get_density <- function(x, y,...) { # set x and y to predicted and observed valu
 }
 
 
-# Creating Final map ----
 
-# External data Validation ----
+
 
 
 
