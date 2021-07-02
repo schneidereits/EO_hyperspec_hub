@@ -81,7 +81,9 @@ plot(mask_a)
 plot(mask_b)
 
 
-# synthetic endmember mixing
+# Creating temporal metrics ----
+
+# synthetic endmember mixing- ---
 
 # Generating synthetic training data using the spectral lib
 
@@ -465,8 +467,9 @@ get_density <- function(x, y,...) { # set x and y to predicted and observed valu
 }
 
 
+# Creating Final map ----
 
-
+# External data Validation ----
 
 
 
