@@ -155,30 +155,18 @@ print(tcc)
 
 landsat_reduced <- landsat_BOA[[1:6]]
 
-brightness <- landsat_reduced[[1]] * tcc[1,1] + 
-              landsat_reduced[[2]] * tcc[2,1] + 
-              landsat_reduced[[3]] * tcc[3,1] + 
-              landsat_reduced[[4]] * tcc[4,1] + 
-              landsat_reduced[[5]] * tcc[5,1] + 
-              landsat_reduced[[6]] * tcc[6,1]
 
+landsat_reduced <- stack(I_imgs[[1]])
+hist(landsat_reduced) # for outlier check
+landsat_reduced[(landsat_reduced>10000) | (landsat_reduced<0)] <- NA
 
-greenness <- landsat_reduced[[1]] * tcc[1,2] + 
-             landsat_reduced[[2]] * tcc[2,2] + 
-             landsat_reduced[[3]] * tcc[3,2] + 
-             landsat_reduced[[4]] * tcc[4,2] + 
-             landsat_reduced[[5]] * tcc[5,2] + 
-             landsat_reduced[[6]] * tcc[6,2]
+tcb <- sum(landsat_reduced * tcc[,1])
+tcg <- sum(landsat_reduced * tcc[,2])
+tcw <- sum(landsat_reduced * tcc[,3])
 
-
-wetness <- landsat_reduced[[1]] * tcc[1,3] + 
-           landsat_reduced[[2]] * tcc[2,3] + 
-           landsat_reduced[[3]] * tcc[3,3] + 
-           landsat_reduced[[4]] * tcc[4,3] + 
-           landsat_reduced[[5]] * tcc[5,3] + 
-           landsat_reduced[[6]] * tcc[6,3]
-
-tcc_stack <- stack(brightness, greenness, wetness)
+landsat_reduced_tc <- stack(c(tcb,tcg,tcw))
+plot(landsat_reduced_tc)
+plotRGB(landsat_reduced_tc, stretch ="hist")
 
 # Creating spectral temporal metrics ----
 
