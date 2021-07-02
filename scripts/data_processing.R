@@ -5,6 +5,7 @@ library(tidyverse)
 library(rgdal)
 library(raster)
 library(randomForest)
+library(e1071)
 
 
 ## hyper spec ----
@@ -29,8 +30,8 @@ df <- as.data.frame(hyperspec_df) %>%
 
 # import files
 landsat_files <- list.files("O:/SS21_EO/Hyperspectral/data/landsat/")
-landsat_BOA_files <- landsat_files[grepl("BOA", landsat_files)]
-landsat_QAI_files <- landsat_files[grepl("QAI", landsat_files)]
+landsat_BOA_files <- landsat_files[grepl("BOA", landsat_files)][-54] # 54 is corrupted
+landsat_QAI_files <- landsat_files[grepl("QAI", landsat_files)][-54]
 
 
 
@@ -41,46 +42,87 @@ landsat_QAI_files <- landsat_files[grepl("QAI", landsat_files)]
 roi <- c(496665, 568665 , 4261665 , 4276665 )
 
 
-# QAI raster 
-for (i in c(1:2)) {
-  stack <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_QAI_files[i]))
-  
-  stack <- crop(stack, roi)
-  mask <- calc(stack, fun = fill_pixels)
-  
-  if (i==1) {
-    final_mask_stack <- mask
-    
-  } else { 
-    
-    final_mask_stack <- stack(final_mask_stack, mask)
+# QAI raster
+# for (i in c(1:59)) {
+#   stack <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_QAI_files[i]))
+# 
+#   stack <- crop(stack, roi)
+#   mask <- calc(stack, fun = fill_pixels)
+# 
+#   if (i==1) {
+#     final_mask_stack <- mask
+# 
+#   } else {
+# 
+#     final_mask_stack <- stack(final_mask_stack, mask)
+#     print(paste("moin layer", i, "is done"))
+# 
+#   }
+# }
 
-  }
-}
+# writeRaster(final_mask_stack, "O:/SS21_EO/Hyperspectral/data/landsat/landsat_cloud_mask",
+#             #overwrite=TRUE,
+#             format='GTiff')
+
+final_mask_stack <- stack("O:/SS21_EO/Hyperspectral/data/landsat/landsat_cloud_mask.tif")
 
 plot(final_mask_stack)
 
+# mask landsat images
 
-QAI <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_QAI_files[59:60]))
-plot(QAI)
-(QAI_count <- freq(QAI) %>% as.data.frame() %>% arrange(-count))
+for (i in c(1:59)) {
+  BOA_stack <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_BOA_files[i]))
+  
+  # crop size
+  BOA_stack <- crop(BOA_stack, roi)
+
+  if(i==1)  {
+    
+    final_masked_BOA <- mask(BOA_stack,
+                             mask = final_mask_stack[[i]], 
+                             maskvalue =1)
+    
+    } else { 
+              
+      masked_BOA <-  mask(BOA_stack,
+                          mask = final_mask_stack[[i]], 
+                          maskvalue =1)
+      
+    final_masked_BOA <- stack(final_masked_BOA, masked_BOA)
+    print(paste("layer", i, "is done"))
+                         
+ }
+}
+
+writeRaster(final_masked_BOA, "O:/SS21_EO/Hyperspectral/data/landsat/masked_BOA",
+            #overwrite=TRUE,
+            format='GTiff')
+
+landsat_BOA <- stack("O:/SS21_EO/Hyperspectral/data/landsat/masked_BOA.tif")
+
+plot(landsat_BOA)
 
 
-# stack all the BOA
-stack <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_BOA_files[59:60])) # change to 60 or n 
-plot(stack)
-
-
-
-# Extent cropping 
-(ext_scene_one <- extent(stack))
-(ext_scene_two <- extent(hyperspec))
-(common.extent <- intersect(ext_scene_one, ext_scene_two))
-roi <- c(496665, 568665 , 4261665 , 4276665 )
-multispec <- crop(stack, roi)
-QAI <- crop(QAI, roi)
-plot(multispec)
-plot(QAI)
+# QAI <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_QAI_files[59:60]))
+# plot(QAI)
+# (QAI_count <- freq(QAI) %>% as.data.frame() %>% arrange(-count))
+# 
+# 
+# # stack all the BOA
+# stack <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_BOA_files[59:60])) # change to 60 or n 
+# plot(stack)
+# 
+# 
+# 
+# # Extent cropping 
+# (ext_scene_one <- extent(stack))
+# (ext_scene_two <- extent(hyperspec))
+# (common.extent <- intersect(ext_scene_one, ext_scene_two))
+# roi <- c(496665, 568665 , 4261665 , 4276665 )
+# multispec <- crop(stack, roi)
+# QAI <- crop(QAI, roi)
+# plot(multispec)
+# plot(QAI)
 
 # Creating a cloud mask ----
 
@@ -99,7 +141,65 @@ for (i in length(QAI)) {
 mask <- calc(QAI, fun = fill_pixels)
 plot(mask)
 
+# tassel cap transformation ----
+
+# TC Coefficients from Crist (1985) (COEF NEED TO BE CHECKED )
+tcc <- matrix(c( 0.2043,  0.4158,  0.5524, 0.5741,  0.3124,  0.2303, 
+                 -0.1603, -0.2819, -0.4934, 0.7940, -0.0002, -0.1446,
+                 0.0315,  0.2021,  0.3102, 0.1594, -0.6806, -0.6109), 
+              dimnames = list(
+                c('blue', 'green', 'red', 'nIR', 'swIR1', 'swIR2'),
+                c('brightness', 'greenness', 'wetness')), ncol = 3)
+
+print(tcc)
+
+landsat_reduced <- landsat_BOA[[1:6]]
+
+brightness <- landsat_reduced[[1]] * tcc[1,1] + 
+              landsat_reduced[[2]] * tcc[2,1] + 
+              landsat_reduced[[3]] * tcc[3,1] + 
+              landsat_reduced[[4]] * tcc[4,1] + 
+              landsat_reduced[[5]] * tcc[5,1] + 
+              landsat_reduced[[6]] * tcc[6,1]
+
+
+greenness <- landsat_reduced[[1]] * tcc[1,2] + 
+             landsat_reduced[[2]] * tcc[2,2] + 
+             landsat_reduced[[3]] * tcc[3,2] + 
+             landsat_reduced[[4]] * tcc[4,2] + 
+             landsat_reduced[[5]] * tcc[5,2] + 
+             landsat_reduced[[6]] * tcc[6,2]
+
+
+wetness <- landsat_reduced[[1]] * tcc[1,3] + 
+           landsat_reduced[[2]] * tcc[2,3] + 
+           landsat_reduced[[3]] * tcc[3,3] + 
+           landsat_reduced[[4]] * tcc[4,3] + 
+           landsat_reduced[[5]] * tcc[5,3] + 
+           landsat_reduced[[6]] * tcc[6,3]
+
+tcc_stack <- stack(brightness, greenness, wetness)
+
 # Creating spectral temporal metrics ----
+
+landsat_matrix <- as.matrix(landsat_BOA) 
+
+
+
+# create function that calculates 0.25 percentile for later use in apply()
+p25 <- function(x){
+  return(quantile(x, 0.25, na.rm =T))[2]
+}
+
+# Calculate p25 across rows in matrix
+landsat_matrix_p25 <- apply(landsat_matrix,1, FUN=p25)
+
+# Write results to empty raster
+tcg_apr_jul_p25_raster <- raster(nrows=tcg_stack@nrows, 
+                                 ncols=tcg_stack@ncols, 
+                                 crs=tcg_stack@crs, 
+                                 vals=tcg_apr_jul_p25,
+                                 ext=extent(tcg_stack))
 
 # synthetic endmember mixing
 
