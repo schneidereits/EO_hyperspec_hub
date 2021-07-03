@@ -153,25 +153,147 @@ tcc <- matrix(c( 0.2043,  0.4158,  0.5524, 0.5741,  0.3124,  0.2303,
 
 print(tcc)
 
-landsat_reduced <- landsat_BOA[[1:6]]
+landsat_reduced <- landsat_BOA[[1:12]]
 
 
 landsat_reduced <- stack(I_imgs[[1]])
 hist(landsat_reduced) # for outlier check
 landsat_reduced[(landsat_reduced>10000) | (landsat_reduced<0)] <- NA
 
-tcb <- sum(landsat_reduced * tcc[,1])
-tcg <- sum(landsat_reduced * tcc[,2])
-tcw <- sum(landsat_reduced * tcc[,3])
+# loop for tcb
 
-landsat_reduced_tc <- stack(c(tcb,tcg,tcw))
-plot(landsat_reduced_tc)
-plotRGB(landsat_reduced_tc, stretch ="hist")
+for (i in c(1:2)) {
+  
+  if (i==1) {
+    
+    loop_images <- c(1:6)
+    
+    tcb <- sum(landsat_reduced[[loop_images]] * tcc[,1])
+   
+    
+    final_landsat_reduced_tcb <- stack(tcb)
+    
+    print("tasseled cap brightness 1 is done")
+    
+  } else {
+    
+    loop_images <-c((((i-1)*6)+1):((i)*6))
+    
+    tcb <- sum(landsat_reduced[[loop_images]] * tcc[,1])
+   
+    
+    landsat_reduced_tcb <- stack(tcb)
+    
+    final_landsat_reduced_tcb <- stack(final_landsat_reduced_tcb, landsat_reduced_tcb)
+    
+    print(paste0("tasseled cap brightness", i,  "is done"))
+    
+  }
+}
+
+
+# loop for tcg
+
+for (i in c(1:2)) {
+  
+  if (i==1) {
+    
+    loop_images <- c(1:6)
+    
+    tcg <- sum(landsat_reduced[[loop_images]] * tcc[,2])
+    
+    
+    final_landsat_reduced_tcg <- stack(tcg)
+    
+    print("tassel cap greeness 1 is done")
+    
+  } else {
+    
+    loop_images <-c((((i-1)*6)+1):((i)*6))
+    
+    tcg <- sum(landsat_reduced[[loop_images]] * tcc[,2])
+    
+    
+    landsat_reduced_tcg <- stack(tcg)
+    
+    final_landsat_reduced_tcg <- stack(final_landsat_reduced_tcg, landsat_reduced_tcg)
+    
+    print(paste0("tasseled cap greeness", i,  "is done"))
+    
+  }
+}
+
+# loop for tcw
+
+for (i in c(1:2)) {
+  
+  if (i==1) {
+    
+    loop_images <- c(1:6)
+    
+    tcw <- sum(landsat_reduced[[loop_images]] * tcc[,3])
+    
+    
+    final_landsat_reduced_tcw <- stack(tcw)
+    
+    print("tassel cap wettness 1 is done")
+    
+  } else {
+    
+    loop_images <-c((((i-1)*6)+1):((i)*6))
+    
+    tcw <- sum(landsat_reduced[[loop_images]] * tcc[,3])
+    
+    
+    landsat_reduced_tcw <- stack(tcw)
+    
+    final_landsat_reduced_tcw <- stack(final_landsat_reduced_tcw, landsat_reduced_tcw)
+    
+    print(paste0("tassel cap wettness", i,  "is done"))
+    
+  }
+}
+
+# for for all tasseled cap components
+#for (i in c(1:2)) {
+  
+  if (i==1) {
+    
+    loop_images <- c(1:6)
+    
+    tcb <- sum(landsat_reduced[[loop_images]] * tcc[,1])
+    tcg <- sum(landsat_reduced[[loop_images]] * tcc[,2])
+    tcw <- sum(landsat_reduced[[loop_images]] * tcc[,3])
+    
+    final_landsat_reduced_tc <- stack(c(tcb,tcg,tcw))
+    
+    print("tassel cap 1 is done")
+    
+  } else {
+    
+    loop_images <-c((((i-1)*6)+1):((i)*6))
+    
+    tcb <- sum(landsat_reduced[[loop_images]] * tcc[,1])
+    tcg <- sum(landsat_reduced[[loop_images]] * tcc[,2])
+    tcw <- sum(landsat_reduced[[loop_images]] * tcc[,3])
+    
+    landsat_reduced_tc <- stack(c(tcb,tcg,tcw))
+    
+    final_landsat_reduced_tc <- stack(final_landsat_reduced_tc, landsat_reduced_tc)
+    
+    print(paste0("tassel cap", i,  "is done"))
+    
+  }
+}
+
+plot(final_landsat_reduced_tc)
+plotRGB(final_landsat_reduced_tc, stretch ="hist")
 
 # Creating spectral temporal metrics ----
 
-landsat_matrix <- as.matrix(landsat_BOA) 
-
+tcb_matrix <- as.matrix(final_landsat_reduced_tcb)
+tcg_matrix <- as.matrix(final_landsat_reduced_tcg)
+tcw_matrix <- as.matrix(final_landsat_reduced_tcw) 
 
 
 # create function that calculates 0.25 percentile for later use in apply()
@@ -179,15 +301,104 @@ p25 <- function(x){
   return(quantile(x, 0.25, na.rm =T))[2]
 }
 
+# create function that calculates 0.25 percentile for later use in apply()
+p75 <- function(x){
+  return(quantile(x, 0.75, na.rm =T))[2]
+}
+
+
+# tcb
 # Calculate p25 across rows in matrix
-landsat_matrix_p25 <- apply(landsat_matrix,1, FUN=p25)
+tcb_matrix_p25 <- apply(tcb_matrix,1, FUN=p25)
+
 
 # Write results to empty raster
-tcg_apr_jul_p25_raster <- raster(nrows=tcg_stack@nrows, 
-                                 ncols=tcg_stack@ncols, 
-                                 crs=tcg_stack@crs, 
-                                 vals=tcg_apr_jul_p25,
-                                 ext=extent(tcg_stack))
+tcb_matrix_p25_raster <- raster(nrows=final_landsat_reduced_tcb@nrows, 
+                                 ncols=final_landsat_reduced_tcb@ncols, 
+                                 crs=final_landsat_reduced_tcb@crs, 
+                                 vals=tcb_matrix_p25,
+                                 ext=extent(final_landsat_reduced_tcb))
+
+# Calculate p75 across rows in matrix
+tcb_matrix_p75 <- apply(tcb_matrix,1, FUN=p75)
+
+# Calculate IQR across rows in matrix
+tcb_matrix_IQR <- apply(tcb_matrix,1, FUN=IQR)
+
+# Calculate mean across rows in matrix
+tcb_matrix_mean <- apply(tcb_matrix,1, FUN=mean)
+
+# Calculate median across rows in matrix
+tcb_matrix_median <- apply(tcb_matrix,1, FUN=median)
+
+# Calculate SD across rows in matrix
+tcb_matrix_median <- apply(tcb_matrix,1, FUN=sd)
+
+# Calculate max across rows in matrix
+tcb_matrix_max <- apply(tcb_matrix,1, FUN=max)
+
+# Calculate min across rows in matrix
+tcb_matrix_min <- apply(tcb_matrix,1, FUN=min)
+
+
+
+
+
+
+# tcg
+# Calculate p25 across rows in matrix
+tcg_matrix_p25 <- apply(tcg_matrix,1, FUN=p25)
+
+# Calculate p75 across rows in matrix
+tcg_matrix_p75 <- apply(tcg_matrix,1, FUN=p75)
+
+# Calculate IQR across rows in matrix
+tcg_matrix_IQR <- apply(tcg_matrix,1, FUN=IQR)
+
+# Calculate mean across rows in matrix
+tcg_matrix_mean <- apply(tcg_matrix,1, FUN=mean)
+
+# Calculate median across rows in matrix
+tcg_matrix_median <- apply(tcg_matrix,1, FUN=median)
+
+# Calculate SD across rows in matrix
+tcg_matrix_median <- apply(tcg_matrix,1, FUN=sd)
+
+# Calculate max across rows in matrix
+tcg_matrix_max <- apply(tcg_matrix,1, FUN=max)
+
+# Calculate min across rows in matrix
+tcg_matrix_min <- apply(tcg_matrix,1, FUN=min)
+
+
+# tcw
+# Calculate p25 across rows in matrix
+tcw_matrix_p25 <- apply(tcw_matrix,1, FUN=p25)
+
+# Calculate p75 across rows in matrix
+tcw_matrix_p75 <- apply(tcw_matrix,1, FUN=p75)
+
+# Calculate IQR across rows in matrix
+tcw_matrix_IQR <- apply(tcw_matrix,1, FUN=IQR)
+
+# Calculate mean across rows in matrix
+tcw_matrix_mean <- apply(tcw_matrix,1, FUN=mean)
+
+# Calculate median across rows in matrix
+tcw_matrix_median <- apply(tcw_matrix,1, FUN=median)
+
+# Calculate SD across rows in matrix
+tcw_matrix_median <- apply(tcw_matrix,1, FUN=sd)
+
+# Calculate max across rows in matrix
+tcw_matrix_max <- apply(tcw_matrix,1, FUN=max)
+
+# Calculate min across rows in matrix
+tcw_matrix_min <- apply(tcw_matrix,1, FUN=min)
+
+
+
+
 
 # synthetic endmember mixing
 
