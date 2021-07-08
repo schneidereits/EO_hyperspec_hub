@@ -64,7 +64,7 @@ roi <- c(496665, 568665 , 4261665 , 4276665 )
 #             #overwrite=TRUE,
 #             format='GTiff')
 
-final_mask_stack <- stack("O:/SS21_EO/Hyperspectral/data/landsat/landsat_cloud_mask.tif")
+final_mask_stack <- stack("data/landsat_cloud_mask.tif")
 
 plot(final_mask_stack)
 
@@ -75,30 +75,30 @@ for (i in c(1:59)) {
   
   # crop size
   BOA_stack <- crop(BOA_stack, roi)
-
+  
   if(i==1)  {
     
     final_masked_BOA <- mask(BOA_stack,
                              mask = final_mask_stack[[i]], 
                              maskvalue =1)
     
-    } else { 
-              
-      masked_BOA <-  mask(BOA_stack,
-                          mask = final_mask_stack[[i]], 
-                          maskvalue =1)
-      
+  } else { 
+    
+    masked_BOA <-  mask(BOA_stack,
+                        mask = final_mask_stack[[i]], 
+                        maskvalue =1)
+    
     final_masked_BOA <- stack(final_masked_BOA, masked_BOA)
     print(paste("layer", i, "is done"))
-                         
- }
+    
+  }
 }
 
 writeRaster(final_masked_BOA, "O:/SS21_EO/Hyperspectral/data/landsat/masked_BOA",
             #overwrite=TRUE,
             format='GTiff')
 
-landsat_BOA <- stack("O:/SS21_EO/Hyperspectral/data/landsat/masked_BOA.tif")
+landsat_BOA <- stack("data/masked_BOA.tif")
 
 plot(landsat_BOA)
 
@@ -153,25 +153,25 @@ tcc <- matrix(c( 0.2043,  0.4158,  0.5524, 0.5741,  0.3124,  0.2303,
 
 print(tcc)
 
-landsat_reduced <- landsat_BOA[[1:12]]
-
-
-landsat_reduced <- stack(I_imgs[[1]])
-hist(landsat_reduced) # for outlier check
-landsat_reduced[(landsat_reduced>10000) | (landsat_reduced<0)] <- NA
+# reduced dataset for testing
+# landsat_reduced <- landsat_BOA[[1:12]]
+# 
+# landsat_reduced <- stack(I_imgs[[1]])
+# hist(landsat_reduced) # for outlier check
+# landsat_BOA[(landsat_BOA>10000) | (landsat_BOA<0)] <- NA
 
 # loop for tcb
 
-for (i in c(1:2)) {
+for (i in c(1:59)) {
   
   if (i==1) {
     
     loop_images <- c(1:6)
     
-    tcb <- sum(landsat_reduced[[loop_images]] * tcc[,1])
-   
+    tcb <- sum(landsat_BOA[[loop_images]] * tcc[,1])
     
-    final_landsat_reduced_tcb <- stack(tcb)
+    
+    final_landsat_BOA_tcb <- stack(tcb)
     
     print("tasseled cap brightness 1 is done")
     
@@ -179,31 +179,34 @@ for (i in c(1:2)) {
     
     loop_images <-c((((i-1)*6)+1):((i)*6))
     
-    tcb <- sum(landsat_reduced[[loop_images]] * tcc[,1])
-   
+    tcb <- sum(landsat_BOA[[loop_images]] * tcc[,1])
     
-    landsat_reduced_tcb <- stack(tcb)
     
-    final_landsat_reduced_tcb <- stack(final_landsat_reduced_tcb, landsat_reduced_tcb)
+    landsat_BOA_tcb <- stack(tcb)
     
-    print(paste0("tasseled cap brightness", i,  "is done"))
+    final_landsat_BOA_tcb <- stack(final_landsat_BOA_tcb, landsat_BOA_tcb)
+    
+    print(paste0("tasseled cap brightness ", i,  "is done"))
     
   }
 }
 
+writeRaster(final_landsat_BOA_tcb, "data/tcb.tif",
+            #overwrite=TRUE,
+            format='GTiff')
 
 # loop for tcg
 
-for (i in c(1:2)) {
+for (i in c(1:59)) {
   
   if (i==1) {
     
     loop_images <- c(1:6)
     
-    tcg <- sum(landsat_reduced[[loop_images]] * tcc[,2])
+    tcg <- sum(landsat_BOA[[loop_images]] * tcc[,2])
     
     
-    final_landsat_reduced_tcg <- stack(tcg)
+    final_landsat_BOA_tcg <- stack(tcg)
     
     print("tassel cap greeness 1 is done")
     
@@ -211,30 +214,35 @@ for (i in c(1:2)) {
     
     loop_images <-c((((i-1)*6)+1):((i)*6))
     
-    tcg <- sum(landsat_reduced[[loop_images]] * tcc[,2])
+    tcg <- sum(landsat_BOA[[loop_images]] * tcc[,2])
     
     
-    landsat_reduced_tcg <- stack(tcg)
+    landsat_BOA_tcg <- stack(tcg)
     
-    final_landsat_reduced_tcg <- stack(final_landsat_reduced_tcg, landsat_reduced_tcg)
+    final_landsat_BOA_tcg <- stack(final_landsat_BOA_tcg, landsat_BOA_tcg)
     
-    print(paste0("tasseled cap greeness", i,  "is done"))
+    print(paste0("tasseled cap greeness ", i,  "is done"))
     
   }
 }
 
+writeRaster(final_landsat_BOA_tcg, "data/tcg.tif",
+            #overwrite=TRUE,
+            format='GTiff')
 # loop for tcw
 
-for (i in c(1:2)) {
+for (i in c(1:59)) {
   
   if (i==1) {
     
+    
+    
     loop_images <- c(1:6)
     
-    tcw <- sum(landsat_reduced[[loop_images]] * tcc[,3])
+    tcw <- sum(landsat_BOA[[loop_images]] * tcc[,3])
     
     
-    final_landsat_reduced_tcw <- stack(tcw)
+    final_landsat_BOA_tcw <- stack(tcw)
     
     print("tassel cap wettness 1 is done")
     
@@ -242,58 +250,68 @@ for (i in c(1:2)) {
     
     loop_images <-c((((i-1)*6)+1):((i)*6))
     
-    tcw <- sum(landsat_reduced[[loop_images]] * tcc[,3])
+    tcw <- sum(landsat_BOA[[loop_images]] * tcc[,3])
     
     
-    landsat_reduced_tcw <- stack(tcw)
+    landsat_BOA_tcw <- stack(tcw)
     
-    final_landsat_reduced_tcw <- stack(final_landsat_reduced_tcw, landsat_reduced_tcw)
+    final_landsat_BOA_tcw <- stack(final_landsat_BOA_tcw, landsat_BOA_tcw)
     
-    print(paste0("tassel cap wettness", i,  "is done"))
+    print(paste0("tassel cap wettness ", i,  "is done"))
     
   }
 }
+
+writeRaster(final_landsat_BOA_tcw, "data/tcw.tif",
+            #overwrite=TRUE,
+            format='GTiff')
+
+
 
 # for for all tasseled cap components
-#for (i in c(1:2)) {
-  
-  if (i==1) {
-    
-    loop_images <- c(1:6)
-    
-    tcb <- sum(landsat_reduced[[loop_images]] * tcc[,1])
-    tcg <- sum(landsat_reduced[[loop_images]] * tcc[,2])
-    tcw <- sum(landsat_reduced[[loop_images]] * tcc[,3])
-    
-    final_landsat_reduced_tc <- stack(c(tcb,tcg,tcw))
-    
-    print("tassel cap 1 is done")
-    
-  } else {
-    
-    loop_images <-c((((i-1)*6)+1):((i)*6))
-    
-    tcb <- sum(landsat_reduced[[loop_images]] * tcc[,1])
-    tcg <- sum(landsat_reduced[[loop_images]] * tcc[,2])
-    tcw <- sum(landsat_reduced[[loop_images]] * tcc[,3])
-    
-    landsat_reduced_tc <- stack(c(tcb,tcg,tcw))
-    
-    final_landsat_reduced_tc <- stack(final_landsat_reduced_tc, landsat_reduced_tc)
-    
-    print(paste0("tassel cap", i,  "is done"))
-    
-  }
-}
+# for (i in c(1:2)) {
+# 
+# if (i==1) {
+#   
+#   loop_images <- c(1:6)
+#   
+#   tcb <- sum(landsat_reduced[[loop_images]] * tcc[,1])
+#   tcg <- sum(landsat_reduced[[loop_images]] * tcc[,2])
+#   tcw <- sum(landsat_reduced[[loop_images]] * tcc[,3])
+#   
+#   final_landsat_reduced_tc <- stack(c(tcb,tcg,tcw))
+#   
+#   print("tassel cap 1 is done")
+#   
+# } else {
+#   
+#   loop_images <-c((((i-1)*6)+1):((i)*6))
+#   
+#   tcb <- sum(landsat_reduced[[loop_images]] * tcc[,1])
+#   tcg <- sum(landsat_reduced[[loop_images]] * tcc[,2])
+#   tcw <- sum(landsat_reduced[[loop_images]] * tcc[,3])
+#   
+#   landsat_reduced_tc <- stack(c(tcb,tcg,tcw))
+#   
+#   final_landsat_reduced_tc <- stack(final_landsat_reduced_tc, landsat_reduced_tc)
+#   
+#   print(paste0("tassel cap", i,  "is done"))
+#   
+# }
+# }
 
-plot(final_landsat_reduced_tc)
-plotRGB(final_landsat_reduced_tc, stretch ="hist")
+# plot(final_landsat_reduced_tc)
+# plotRGB(final_landsat_reduced_tc, stretch ="hist")
 
 # Creating spectral temporal metrics ----
 
-tcb_matrix <- as.matrix(final_landsat_reduced_tcb)
-tcg_matrix <- as.matrix(final_landsat_reduced_tcg)
-tcw_matrix <- as.matrix(final_landsat_reduced_tcw) 
+final_landsat_BOA_tcb <- stack("data/tcb.tif")
+final_landsat_BOA_tcg <- stack("data/tcg.tif")
+final_landsat_BOA_tcw <- stack("data/tcw.tif")
+
+tcb_matrix <- as.matrix(final_landsat_BOA_tcb)
+tcg_matrix <- as.matrix(final_landsat_BOA_tcg)
+tcw_matrix <- as.matrix(final_landsat_BOA_tcw) 
 
 
 # create function that calculates 0.25 percentile for later use in apply()
@@ -307,100 +325,262 @@ p75 <- function(x){
 }
 
 
-# tcb
+# tcb stm ----
 # Calculate p25 across rows in matrix
-tcb_matrix_p25 <- apply(tcb_matrix,1, FUN=p25)
-
+library(parallel)
+tcb_matrix_p25 <-  mclapply(tcb_matrix,1, FUN=p25, na.rm=T, mc.cores = 3)
 
 # Write results to empty raster
-tcb_matrix_p25_raster <- raster(nrows=final_landsat_reduced_tcb@nrows, 
-                                 ncols=final_landsat_reduced_tcb@ncols, 
-                                 crs=final_landsat_reduced_tcb@crs, 
-                                 vals=tcb_matrix_p25,
-                                 ext=extent(final_landsat_reduced_tcb))
+tcb_matrix_p25_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcb_matrix_p25,
+                                ext=extent(final_landsat_BOA_tcb))
 
 # Calculate p75 across rows in matrix
-tcb_matrix_p75 <- apply(tcb_matrix,1, FUN=p75)
+tcb_matrix_p75 <- lapply(tcb_matrix,1, FUN=p75, na.rm=T)
+
+# Write results to empty raster
+tcb_matrix_p75_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcb_matrix_p75,
+                                ext=extent(final_landsat_BOA_tcb))
 
 # Calculate IQR across rows in matrix
-tcb_matrix_IQR <- apply(tcb_matrix,1, FUN=IQR)
+tcb_matrix_IQR <- apply(tcb_matrix,1, FUN=IQR, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcb_matrix_IQR_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcb_matrix_IQR,
+                                ext=extent(final_landsat_BOA_tcb))
 
 # Calculate mean across rows in matrix
-tcb_matrix_mean <- apply(tcb_matrix,1, FUN=mean)
+tcb_matrix_mean <- apply(tcb_matrix,1, FUN=mean, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcb_matrix_mean_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                 ncols=final_landsat_BOA_tcb@ncols, 
+                                 crs=final_landsat_BOA_tcb@crs, 
+                                 vals=tcb_matrix_mean,
+                                 ext=extent(final_landsat_BOA_tcb))
 
 # Calculate median across rows in matrix
-tcb_matrix_median <- apply(tcb_matrix,1, FUN=median)
+tcb_matrix_median <- apply(tcb_matrix,1, FUN=median, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcb_matrix_median_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                   ncols=final_landsat_BOA_tcb@ncols, 
+                                   crs=final_landsat_BOA_tcb@crs, 
+                                   vals=tcb_matrix_median,
+                                   ext=extent(final_landsat_BOA_tcb))
+
 
 # Calculate SD across rows in matrix
-tcb_matrix_median <- apply(tcb_matrix,1, FUN=sd)
+tcb_matrix_median <- apply(tcb_matrix,1, FUN=sd, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcb_matrix_median_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                   ncols=final_landsat_BOA_tcb@ncols, 
+                                   crs=final_landsat_BOA_tcb@crs, 
+                                   vals=tcb_matrix_median,
+                                   ext=extent(final_landsat_BOA_tcb))
 
 # Calculate max across rows in matrix
-tcb_matrix_max <- apply(tcb_matrix,1, FUN=max)
+tcb_matrix_max <- apply(tcb_matrix,1, FUN=max, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcb_matrix_max_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcb_matrix_max,
+                                ext=extent(final_landsat_BOA_tcb))
 
 # Calculate min across rows in matrix
-tcb_matrix_min <- apply(tcb_matrix,1, FUN=min)
+tcb_matrix_min <- apply(tcb_matrix,1, FUN=min, na.rm=T, mc.cores = 3)
 
-
-
-
-
-
-# tcg
+# Write results to empty raster
+tcb_matrix_min_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcb_matrix_min,
+                                ext=extent(final_landsat_BOA_tcb))
+# tcg stm ----
 # Calculate p25 across rows in matrix
-tcg_matrix_p25 <- apply(tcg_matrix,1, FUN=p25)
+tcg_matrix_p25 <- apply(tcg_matrix,1, FUN=p25, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcb_matrix_p25_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcb_matrix_p25,
+                                ext=extent(final_landsat_BOA_tcb))
 
 # Calculate p75 across rows in matrix
-tcg_matrix_p75 <- apply(tcg_matrix,1, FUN=p75)
+tcg_matrix_p75 <- apply(tcg_matrix,1, FUN=p75, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcg_matrix_p75_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcg_matrix_p75,
+                                ext=extent(final_landsat_BOA_tcb))
 
 # Calculate IQR across rows in matrix
-tcg_matrix_IQR <- apply(tcg_matrix,1, FUN=IQR)
+tcg_matrix_IQR <- apply(tcg_matrix,1, FUN=IQR, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcg_matrix_IQR_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcg_matrix_IQR,
+                                ext=extent(final_landsat_BOA_tcb))
 
 # Calculate mean across rows in matrix
-tcg_matrix_mean <- apply(tcg_matrix,1, FUN=mean)
+tcg_matrix_mean <- apply(tcg_matrix,1, FUN=mean, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcg_matrix_mean_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                 ncols=final_landsat_BOA_tcb@ncols, 
+                                 crs=final_landsat_BOA_tcb@crs, 
+                                 vals=tcg_matrix_mean,
+                                 ext=extent(final_landsat_BOA_tcb))
 
 # Calculate median across rows in matrix
-tcg_matrix_median <- apply(tcg_matrix,1, FUN=median)
+tcg_matrix_median <- apply(tcg_matrix,1, FUN=median, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcg_matrix_median_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                   ncols=final_landsat_BOA_tcb@ncols, 
+                                   crs=final_landsat_BOA_tcb@crs, 
+                                   vals=tcg_matrix_median,
+                                   ext=extent(final_landsat_BOA_tcb))
 
 # Calculate SD across rows in matrix
-tcg_matrix_median <- apply(tcg_matrix,1, FUN=sd)
+tcg_matrix_sd <- apply(tcg_matrix,1, FUN=sd, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcg_matrix_sd_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                               ncols=final_landsat_BOA_tcb@ncols, 
+                               crs=final_landsat_BOA_tcb@crs, 
+                               vals=SD,
+                               ext=extent(final_landsat_BOA_tcb))
 
 # Calculate max across rows in matrix
-tcg_matrix_max <- apply(tcg_matrix,1, FUN=max)
+tcg_matrix_max <- apply(tcg_matrix,1, FUN=max, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcg_matrix_max_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcg_matrix_max,
+                                ext=extent(final_landsat_BOA_tcb))
+
 
 # Calculate min across rows in matrix
-tcg_matrix_min <- apply(tcg_matrix,1, FUN=min)
+tcg_matrix_min <- apply(tcg_matrix,1, FUN=min, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcg_matrix_min_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcg_matrix_min,
+                                ext=extent(final_landsat_BOA_tcb))
 
 
-# tcw
+# tcw stm ----
 # Calculate p25 across rows in matrix
-tcw_matrix_p25 <- apply(tcw_matrix,1, FUN=p25)
+tcw_matrix_p25 <- apply(tcw_matrix,1, FUN=p25, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcw_matrix_p25_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcw_matrix_p25,
+                                ext=extent(final_landsat_BOA_tcb))
 
 # Calculate p75 across rows in matrix
-tcw_matrix_p75 <- apply(tcw_matrix,1, FUN=p75)
+tcw_matrix_p75 <- apply(tcw_matrix,1, FUN=p75, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcw_matrix_p75_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcw_matrix_p75,
+                                ext=extent(final_landsat_BOA_tcb))
 
 # Calculate IQR across rows in matrix
-tcw_matrix_IQR <- apply(tcw_matrix,1, FUN=IQR)
+tcw_matrix_IQR <- apply(tcw_matrix,1, FUN=IQR, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcw_matrix_IQR_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcw_matrix_IQR,
+                                ext=extent(final_landsat_BOA_tcb))
 
 # Calculate mean across rows in matrix
-tcw_matrix_mean <- apply(tcw_matrix,1, FUN=mean)
+tcw_matrix_mean <- apply(tcw_matrix,1, FUN=mean, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcw_matrix_mean_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                 ncols=final_landsat_BOA_tcb@ncols, 
+                                 crs=final_landsat_BOA_tcb@crs, 
+                                 vals=tcw_matrix_mean,
+                                 ext=extent(final_landsat_BOA_tcb))
 
 # Calculate median across rows in matrix
-tcw_matrix_median <- apply(tcw_matrix,1, FUN=median)
+tcw_matrix_median <- apply(tcw_matrix,1, FUN=median, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcw_matrix_median_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                   ncols=final_landsat_BOA_tcb@ncols, 
+                                   crs=final_landsat_BOA_tcb@crs, 
+                                   vals=tcw_matrix_median,
+                                   ext=extent(final_landsat_BOA_tcb))
+
 
 # Calculate SD across rows in matrix
-tcw_matrix_median <- apply(tcw_matrix,1, FUN=sd)
+tcw_matrix_median <- apply(tcw_matrix,1, FUN=sd, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcw_matrix_median_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                   ncols=final_landsat_BOA_tcb@ncols, 
+                                   crs=final_landsat_BOA_tcb@crs, 
+                                   vals=tcw_matrix_median,
+                                   ext=extent(final_landsat_BOA_tcb))
 
 # Calculate max across rows in matrix
-tcw_matrix_max <- apply(tcw_matrix,1, FUN=max)
+tcw_matrix_max <- apply(tcw_matrix,1, FUN=max, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcw_matrix_max_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcw_matrix_max,
+                                ext=extent(final_landsat_BOA_tcb))
 
 # Calculate min across rows in matrix
-tcw_matrix_min <- apply(tcw_matrix,1, FUN=min)
+tcw_matrix_min <- apply(tcw_matrix,1, FUN=min, na.rm=T, mc.cores = 3)
+
+# Write results to empty raster
+tcw_matrix_min_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+                                ncols=final_landsat_BOA_tcb@ncols, 
+                                crs=final_landsat_BOA_tcb@crs, 
+                                vals=tcw_matrix_min,
+                                ext=extent(final_landsat_BOA_tcb))
 
 
 
 
 
-# synthetic endmember mixing
+
+
+
+
+# synthetic endmember mixing ----
 
 sli <- read.csv("data/gcg_eo_s09/S2_EM.txt")
 sli_snythmix <- sli
@@ -552,26 +732,20 @@ synthMix <- function(
 }
 
 ###### REPLACE WITH OUR CLASSES 
-mix_NPV <- synthMix(sli_snythmix, 
+mix_veg <- synthMix(sli_snythmix, 
                     n_mix=1000, 
-                    mix_complexity=(c(2,3)),
-                    mix_likelihood=c(0.5, 0.5),
-                    target_class = "NPV",
-                    other_classes = c("PV", "soil","shade"))
+                    mix_complexity=(c(2)),
+                    mix_likelihood=c(1),
+                    target_class = "veg",
+                    other_classes = c("veg", "non_veg"))
 
-mix_PV <- synthMix(sli_snythmix, 
-                   n_mix=1000, 
-                   mix_complexity=(c(2,3)),
-                   mix_likelihood=c(0.5, 0.5),
-                   target_class = "PV",
-                   other_classes = c("NPV", "soil","shade"))
+mix_non_veg <- synthMix(sli_snythmix, 
+                        n_mix=1000, 
+                        mix_complexity=(c(2)),
+                        mix_likelihood=c(1),
+                        target_class = "non_veg",
+                        other_classes = c("veg", "non_veg"))
 
-mix_soil <- synthMix(sli_snythmix, 
-                     n_mix=1000, 
-                     mix_complexity=(c(2,3)),
-                     mix_likelihood=c(0.5, 0.5),
-                     target_class = "soil",
-                     other_classes = c("NPV", "PV","shade"))
 
 
 
@@ -743,6 +917,7 @@ get_density <- function(x, y,...) { # set x and y to predicted and observed valu
   ii <- cbind(ix, iy)
   return(dens$z[ii])
 }
+
 
 
 
