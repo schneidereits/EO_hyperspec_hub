@@ -14,6 +14,13 @@ library(e1071)
 
 # hyperspectral data 
 hyperspec <- stack("data/2013SU_BA_ENMAP_L2sim.bsq")
+names <- names(hyperspec)
+bands <- sub(".000000.Nanometers.", "", names) 
+bands <- paste0("wavelength_", c(sub('.*bsq...', '', bands)))
+
+names(hyperspec) <- bands
+
+
 plot(hyperspec)
 
 # extract training data point from hyperspec stack
