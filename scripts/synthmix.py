@@ -99,7 +99,7 @@ def lsma(df, col_response=None, response_id=None, n=1000, within_class_mixture=T
 
 
 # input
-input_csv = ""
+input_csv = "/Users/shawn/Documents/humbolt/semester_02/EO_hyperspec/spectral_library/spectral_library_hyperspec"
 output_csv = ""  # string with .csv ending; file does not need to exist
 df = pd.read_csv(input_csv)  # .csv table
 '''
@@ -107,7 +107,7 @@ df = pd.read_csv(input_csv)  # .csv table
 - each row represents a single pure endmember point
 - cleaned of nodata values, only valid observations (otherwise they might be mixed in)
 '''
-target_attr = ''  # name of column which holds the class_id
+target_attr = 'class_ID'  # name of column which holds the class_id
 n_samples = 2500  # number of synthetically mixed training points to be generated
 
 # run
