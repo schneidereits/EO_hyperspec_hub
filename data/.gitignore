@@ -2,3 +2,8 @@ masked_BOA.tif
 tcb.tif
 tcg.tif
 tcw.tif
+landsat_BOA_filtered.tif
+landsat_BOA_filtered.tif.aux.xml
+tcb_stm.tif
+tcg_stm.tif
+tcw_stm.tif

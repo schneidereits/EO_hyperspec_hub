@@ -98,7 +98,7 @@ writeRaster(final_masked_BOA, "O:/SS21_EO/Hyperspectral/data/landsat/masked_BOA"
             #overwrite=TRUE,
             format='GTiff')
 
-landsat_BOA <- stack("data/masked_BOA.tif")
+landsat_BOA <- stack("data/landsat_BOA_filtered.tif")
 
 plot(landsat_BOA)
 
@@ -327,8 +327,8 @@ p75 <- function(x){
 
 # tcb stm ----
 # Calculate p25 across rows in matrix
-library(parallel)
-tcb_matrix_p25 <-  mclapply(tcb_matrix,1, FUN=p25, na.rm=T, mc.cores = 3)
+#library(parallel)
+#tcb_matrix_p25 <-  mclapply(tcb_matrix,1, FUN=p25, na.rm=T, mc.cores = 3)
 
 # Write results to empty raster
 tcb_matrix_p25_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -348,7 +348,7 @@ tcb_matrix_p75_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                 ext=extent(final_landsat_BOA_tcb))
 
 # Calculate IQR across rows in matrix
-tcb_matrix_IQR <- apply(tcb_matrix,1, FUN=IQR, na.rm=T, mc.cores = 3)
+tcb_matrix_IQR <- apply(tcb_matrix,1, FUN=IQR, na.rm=T)
 
 # Write results to empty raster
 tcb_matrix_IQR_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -358,7 +358,7 @@ tcb_matrix_IQR_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                 ext=extent(final_landsat_BOA_tcb))
 
 # Calculate mean across rows in matrix
-tcb_matrix_mean <- apply(tcb_matrix,1, FUN=mean, na.rm=T, mc.cores = 3)
+tcb_matrix_mean <- apply(tcb_matrix,1, FUN=mean, na.rm=T)
 
 # Write results to empty raster
 tcb_matrix_mean_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -368,7 +368,7 @@ tcb_matrix_mean_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                  ext=extent(final_landsat_BOA_tcb))
 
 # Calculate median across rows in matrix
-tcb_matrix_median <- apply(tcb_matrix,1, FUN=median, na.rm=T, mc.cores = 3)
+tcb_matrix_median <- apply(tcb_matrix,1, FUN=median, na.rm=T)
 
 # Write results to empty raster
 tcb_matrix_median_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -379,17 +379,17 @@ tcb_matrix_median_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
 
 
 # Calculate SD across rows in matrix
-tcb_matrix_median <- apply(tcb_matrix,1, FUN=sd, na.rm=T, mc.cores = 3)
+tcb_matrix_sd <- apply(tcb_matrix,1, FUN=sd, na.rm=T)
 
 # Write results to empty raster
-tcb_matrix_median_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+tcb_matrix_sd_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
                                    ncols=final_landsat_BOA_tcb@ncols, 
                                    crs=final_landsat_BOA_tcb@crs, 
-                                   vals=tcb_matrix_median,
+                                   vals=tcb_matrix_sd,
                                    ext=extent(final_landsat_BOA_tcb))
 
 # Calculate max across rows in matrix
-tcb_matrix_max <- apply(tcb_matrix,1, FUN=max, na.rm=T, mc.cores = 3)
+tcb_matrix_max <- apply(tcb_matrix,1, FUN=max, na.rm=T)
 
 # Write results to empty raster
 tcb_matrix_max_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -399,7 +399,7 @@ tcb_matrix_max_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                 ext=extent(final_landsat_BOA_tcb))
 
 # Calculate min across rows in matrix
-tcb_matrix_min <- apply(tcb_matrix,1, FUN=min, na.rm=T, mc.cores = 3)
+tcb_matrix_min <- apply(tcb_matrix,1, FUN=min, na.rm=T)
 
 # Write results to empty raster
 tcb_matrix_min_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -407,9 +407,19 @@ tcb_matrix_min_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                 crs=final_landsat_BOA_tcb@crs, 
                                 vals=tcb_matrix_min,
                                 ext=extent(final_landsat_BOA_tcb))
+
+
+tcb_stm <- stack(tcb_matrix_IQR_raster, tcb_matrix_mean_raster,
+                 tcb_matrix_median_raster, tcb_matrix_sd_raster,
+                 tcb_matrix_max_raster, tcb_matrix_min_raster)
+
+writeRaster(final_landsat_BOA_tcw, "data/tcb_stm.tif",
+                       #overwrite=TRUE,
+                       format='GTiff')
+
 # tcg stm ----
 # Calculate p25 across rows in matrix
-tcg_matrix_p25 <- apply(tcg_matrix,1, FUN=p25, na.rm=T, mc.cores = 3)
+tcg_matrix_p25 <- apply(tcg_matrix,1, FUN=p25, na.rm=T)
 
 # Write results to empty raster
 tcb_matrix_p25_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -419,7 +429,7 @@ tcb_matrix_p25_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                 ext=extent(final_landsat_BOA_tcb))
 
 # Calculate p75 across rows in matrix
-tcg_matrix_p75 <- apply(tcg_matrix,1, FUN=p75, na.rm=T, mc.cores = 3)
+tcg_matrix_p75 <- apply(tcg_matrix,1, FUN=p75, na.rm=T)
 
 # Write results to empty raster
 tcg_matrix_p75_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -429,7 +439,7 @@ tcg_matrix_p75_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                 ext=extent(final_landsat_BOA_tcb))
 
 # Calculate IQR across rows in matrix
-tcg_matrix_IQR <- apply(tcg_matrix,1, FUN=IQR, na.rm=T, mc.cores = 3)
+tcg_matrix_IQR <- apply(tcg_matrix,1, FUN=IQR, na.rm=T)
 
 # Write results to empty raster
 tcg_matrix_IQR_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -439,7 +449,7 @@ tcg_matrix_IQR_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                 ext=extent(final_landsat_BOA_tcb))
 
 # Calculate mean across rows in matrix
-tcg_matrix_mean <- apply(tcg_matrix,1, FUN=mean, na.rm=T, mc.cores = 3)
+tcg_matrix_mean <- apply(tcg_matrix,1, FUN=mean, na.rm=T)
 
 # Write results to empty raster
 tcg_matrix_mean_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -449,7 +459,7 @@ tcg_matrix_mean_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                  ext=extent(final_landsat_BOA_tcb))
 
 # Calculate median across rows in matrix
-tcg_matrix_median <- apply(tcg_matrix,1, FUN=median, na.rm=T, mc.cores = 3)
+tcg_matrix_median <- apply(tcg_matrix,1, FUN=median, na.rm=T)
 
 # Write results to empty raster
 tcg_matrix_median_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -459,17 +469,17 @@ tcg_matrix_median_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                    ext=extent(final_landsat_BOA_tcb))
 
 # Calculate SD across rows in matrix
-tcg_matrix_sd <- apply(tcg_matrix,1, FUN=sd, na.rm=T, mc.cores = 3)
+tcg_matrix_sd <- apply(tcg_matrix,1, FUN=sd, na.rm=T)
 
 # Write results to empty raster
 tcg_matrix_sd_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
                                ncols=final_landsat_BOA_tcb@ncols, 
                                crs=final_landsat_BOA_tcb@crs, 
-                               vals=SD,
+                               vals=tcg_matrix_sd,
                                ext=extent(final_landsat_BOA_tcb))
 
 # Calculate max across rows in matrix
-tcg_matrix_max <- apply(tcg_matrix,1, FUN=max, na.rm=T, mc.cores = 3)
+tcg_matrix_max <- apply(tcg_matrix,1, FUN=max, na.rm=T)
 
 # Write results to empty raster
 tcg_matrix_max_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -480,7 +490,7 @@ tcg_matrix_max_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
 
 
 # Calculate min across rows in matrix
-tcg_matrix_min <- apply(tcg_matrix,1, FUN=min, na.rm=T, mc.cores = 3)
+tcg_matrix_min <- apply(tcg_matrix,1, FUN=min, na.rm=T)
 
 # Write results to empty raster
 tcg_matrix_min_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -490,9 +500,17 @@ tcg_matrix_min_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                 ext=extent(final_landsat_BOA_tcb))
 
 
+tcg_stm <- stack(tcg_matrix_IQR_raster, tcg_matrix_mean_raster,
+                 tcg_matrix_median_raster, tcg_matrix_sd_raster,
+                 tcg_matrix_max_raster, tcg_matrix_min_raster)
+
+writeRaster(final_landsat_BOA_tcw, "data/tcg_stm.tif",
+                       #overwrite=TRUE,
+                       format='GTiff')
+
 # tcw stm ----
 # Calculate p25 across rows in matrix
-tcw_matrix_p25 <- apply(tcw_matrix,1, FUN=p25, na.rm=T, mc.cores = 3)
+tcw_matrix_p25 <- apply(tcw_matrix,1, FUN=p25, na.rm=T)
 
 # Write results to empty raster
 tcw_matrix_p25_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -502,7 +520,7 @@ tcw_matrix_p25_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                 ext=extent(final_landsat_BOA_tcb))
 
 # Calculate p75 across rows in matrix
-tcw_matrix_p75 <- apply(tcw_matrix,1, FUN=p75, na.rm=T, mc.cores = 3)
+tcw_matrix_p75 <- apply(tcw_matrix,1, FUN=p75, na.rm=T)
 
 # Write results to empty raster
 tcw_matrix_p75_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -512,7 +530,7 @@ tcw_matrix_p75_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                 ext=extent(final_landsat_BOA_tcb))
 
 # Calculate IQR across rows in matrix
-tcw_matrix_IQR <- apply(tcw_matrix,1, FUN=IQR, na.rm=T, mc.cores = 3)
+tcw_matrix_IQR <- apply(tcw_matrix,1, FUN=IQR, na.rm=T)
 
 # Write results to empty raster
 tcw_matrix_IQR_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -522,7 +540,7 @@ tcw_matrix_IQR_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                 ext=extent(final_landsat_BOA_tcb))
 
 # Calculate mean across rows in matrix
-tcw_matrix_mean <- apply(tcw_matrix,1, FUN=mean, na.rm=T, mc.cores = 3)
+tcw_matrix_mean <- apply(tcw_matrix,1, FUN=mean, na.rm=T)
 
 # Write results to empty raster
 tcw_matrix_mean_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -532,7 +550,7 @@ tcw_matrix_mean_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                  ext=extent(final_landsat_BOA_tcb))
 
 # Calculate median across rows in matrix
-tcw_matrix_median <- apply(tcw_matrix,1, FUN=median, na.rm=T, mc.cores = 3)
+tcw_matrix_median <- apply(tcw_matrix,1, FUN=median, na.rm=T)
 
 # Write results to empty raster
 tcw_matrix_median_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -543,17 +561,17 @@ tcw_matrix_median_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
 
 
 # Calculate SD across rows in matrix
-tcw_matrix_median <- apply(tcw_matrix,1, FUN=sd, na.rm=T, mc.cores = 3)
+tcw_matrix_sd <- apply(tcw_matrix,1, FUN=sd, na.rm=T)
 
 # Write results to empty raster
-tcw_matrix_median_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
+tcw_matrix_sd_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
                                    ncols=final_landsat_BOA_tcb@ncols, 
                                    crs=final_landsat_BOA_tcb@crs, 
-                                   vals=tcw_matrix_median,
+                                   vals=tcw_matrix_sd,
                                    ext=extent(final_landsat_BOA_tcb))
 
 # Calculate max across rows in matrix
-tcw_matrix_max <- apply(tcw_matrix,1, FUN=max, na.rm=T, mc.cores = 3)
+tcw_matrix_max <- apply(tcw_matrix,1, FUN=max, na.rm=T)
 
 # Write results to empty raster
 tcw_matrix_max_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -563,7 +581,7 @@ tcw_matrix_max_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                 ext=extent(final_landsat_BOA_tcb))
 
 # Calculate min across rows in matrix
-tcw_matrix_min <- apply(tcw_matrix,1, FUN=min, na.rm=T, mc.cores = 3)
+tcw_matrix_min <- apply(tcw_matrix,1, FUN=min, na.rm=T)
 
 # Write results to empty raster
 tcw_matrix_min_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
@@ -573,7 +591,13 @@ tcw_matrix_min_raster <- raster(nrows=final_landsat_BOA_tcb@nrows,
                                 ext=extent(final_landsat_BOA_tcb))
 
 
+tcw_stm <- stack(tcw_matrix_IQR_raster, tcw_matrix_mean_raster,
+                 tcw_matrix_median_raster, tcw_matrix_sd_raster,
+                 tcw_matrix_max_raster, tcw_matrix_min_raster)
 
+writeRaster(final_landsat_BOA_tcw, "data/tcw_stm.tif",
+                       #overwrite=TRUE,
+                       format='GTiff')
 
 
 
