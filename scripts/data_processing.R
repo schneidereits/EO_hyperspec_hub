@@ -13,7 +13,7 @@ library(e1071)
 ### Import and manipulation ----
 
 # hyperspectral data 
-hyperspec <- raster("O:/SS21_EO/Hyperspectral/data/enmap/2013SU_BA_ENMAP_L2SIM.bsq")
+hyperspec <- stack("data/2013SU_BA_ENMAP_L2sim.bsq")
 plot(hyperspec)
 
 # extract training data point from hyperspec stack
@@ -158,7 +158,8 @@ print(tcc)
 # 
 # landsat_reduced <- stack(I_imgs[[1]])
 # hist(landsat_reduced) # for outlier check
-# landsat_BOA[(landsat_BOA>10000) | (landsat_BOA<0)] <- NA
+#
+landsat_BOA[(landsat_BOA>10000) | (landsat_BOA<0)] <- NA
 
 # loop for tcb
 
@@ -606,7 +607,43 @@ writeRaster(final_landsat_BOA_tcw, "data/tcw_stm.tif",
 
 # synthetic endmember mixing ----
 
-sli <- read.csv("data/gcg_eo_s09/S2_EM.txt")
+training_data <- readOGR(dsn='spectral_library/spectral_library.shp')
+
+
+# Use extract() to create a data.frame with training points as rows, and class labels 
+# (classID) as well as the spectral bands of your composites as columns. 
+# Remove the day of year and year flags (band 7 and 8) for the next steps.
+
+# extracting hyperspec points
+hyperspec_df <- raster::extract(hyperspec, training_data, sp=T) 
+
+df <- as.data.frame(hyperspec_df) %>% 
+  na.omit() %>% 
+  dplyr::select(-coords.x1, -coords.x2)
+# colnames(df[,2:198]) <- str_sub(colnames(df[,2:198]), -23, -18)   
+
+#sub(".Nanometers.", "", colnames(df))
+#sub(".*...", "", colnames(df))
+
+write.csv(df, file = "spectral_library/spectral_library_hyperspec")
+
+# synthmix_hyperspec.csv created with python function "snythmix"
+sli_hyperspec <- read.csv("spectral_library/synthmix_hyperspec.csv")
+
+sli_hyperspec_df <- sli_hyperspec %>% 
+  dplyr::select(-class_ID) %>% 
+  rename(class_ID = Unnamed..0)
+ 
+
+
+# df <- as.data.frame(hyperspec_df) %>% 
+#   select(-1) %>% 
+#   na.omit() %>% 
+#   select(-coords.x1, -coords.x2) 
+
+names(df)
+
+
 sli_snythmix <- sli
 head(sli)
 sli$wavelength <- c(493, 560, 665, 704, 740, 783, 883, 865, 1610, 2190)
@@ -737,7 +774,9 @@ synthMix <- function(
     ds_training <- rbind(ds_training, train_mix) 
     
   }
-  # add original library spectra to the training data
+ 
+  
+   # add original library spectra to the training data
   # vector of target class spectrum and cover fraction of 1
   em_target <- c(sli[, target_class], 1) 
   
@@ -777,36 +816,24 @@ mix_non_veg <- synthMix(sli_snythmix,
 
 
 # Define accuracy from 10-fold cross-validation as optimization measure
-cv <- tune.control(cross = 10) 
+cv <- tune.control(cross = 3) # change for final 
 
 # Use tune.svm() for a grid search of the gamma and cost parameters
 
-svm_test_NPV <- svm(fraction~., 
-                    data = mix_NPV, 
-                    kernel = 'radial',
-                    gamma = 1, 
-                    cost = 1, 
-                    epsilon = 0.001,
-                    tunecontrol = cv)
+sli_hyperspec_NV <- sli_hyperspec_df %>% 
+  filter(class_ID == 5) %>% 
+  dplyr::select(-class_ID)
 
-svm_test_PV <- svm(fraction~., 
-                   data = mix_PV, 
-                   kernel = 'radial',
-                   gamma = 1, 
-                   cost = 1, 
-                   epsilon = 0.001,
-                   tunecontrol = cv)
-
-svm_test_soil <- svm(fraction~., 
-                     data = mix_soil, 
-                     kernel = 'radial',
-                     gamma = 1, 
-                     cost = 1, 
-                     epsilon = 0.001,
-                     tunecontrol = cv)
+svm_NV_test <-  svm(fraction~., 
+                 data = sli_hyperspec_NV, 
+                 kernel = 'radial',
+                 gamma = 1, 
+                 cost = 1, 
+                 epsilon = 0.001,
+                 tunecontrol = cv)
 
 svm.tune <- tune.svm(fraction~., 
-                     data = mix_NPV, 
+                     data = sli_hyperspec_df, 
                      kernel = 'radial', 
                      gamma = (0.01:100), 
                      cost = 10^(-2:2), 
@@ -820,12 +847,11 @@ svm.best <- svm.tune$best.model
 print(svm.best$gamma)
 print(svm.best$cost)
 
-s2 <- stack("data/gcg_eo_s09/2018-2019_091-319_HL_TSA_SEN2L_TSS_20190726_SEN2A_crop.tif")
-names(s2) <- paste("B", seq(1,10), sep="")
-plot(s2)
+# load in validation points from cooper et al 2020
+validation <- readOGR(dsn='validation/validation_poly.shp')
 
-prediction_NPV <- predict(s2, svm_test_NPV)
-plot(prediction_NPV)
+prediction_hyperspec_NV <- predict(hyperspec, svm_NV_test)
+plot(prediction_hyperspec_NV)
 
 prediction_PV <- predict(s2, svm_test_PV)
 plot(prediction_PV)
