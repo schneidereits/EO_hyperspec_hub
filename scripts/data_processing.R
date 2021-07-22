@@ -7,6 +7,21 @@ library(raster)
 library(randomForest)
 library(e1071)
 
+# functions ----
+
+# unclear if needed for cloudmasking
+mask_highconf <- function(x){
+  bs <- intToBits(x)
+  return ( ((bs[1]) | (bs[6] & bs[7]) | (bs[8] & bs[9])) == T)
+}
+
+# function used to convert QA band into bits 
+fill_pixels <- function(x) {((intToBits(x)[1] == T))}
+
+# 
+# for (i in length(QAI)) {
+#   mask <- calc(QAI[[i]], fun = pixels) # function should probably be mask_highconf???
+# }
 
 ## hyper spec ----
 
@@ -14,14 +29,20 @@ library(e1071)
 
 # hyperspectral data 
 hyperspec <- stack("data/2013SU_BA_ENMAP_L2sim.bsq")
+# create vector of names
 names <- names(hyperspec)
+# use sub to extract standard ".000000.Nanometers." string at end of col name
 bands <- sub(".000000.Nanometers.", "", names) 
+# remove string before standard '.*bsq...' string at begining of col name
 bands <- paste0("wavelength_", c(sub('.*bsq...', '', bands)))
 
+# assign the correct band names to the hyperspec stack
 names(hyperspec) <- bands
 
-
 plot(hyperspec)
+
+# import our training data that we collected in QGIS
+training_data <- readOGR(dsn='spectral_library/spectral_library.shp')
 
 # extract training data point from hyperspec stack
 hyperspec_df <- raster::extract(hyperspec, training_data, sp=T) 
@@ -36,117 +57,106 @@ df <- as.data.frame(hyperspec_df) %>%
 ## multi-temporal data ----
 
 # import files
-landsat_files <- list.files("O:/SS21_EO/Hyperspectral/data/landsat/")
-landsat_BOA_files <- landsat_files[grepl("BOA", landsat_files)][-54] # 54 is corrupted
-landsat_QAI_files <- landsat_files[grepl("QAI", landsat_files)][-54]
-
+# create list of files in the data directory 
+landsat_BOA_files <- list.files("data/BOA/")[-54]
+landsat_QAI_files <- list.files("data/QAI/")[-54]
 
 
 # define extent
-(ext_scene_one <- extent(stack))
+# extent of landsat stack
+#old path on HU desktop
+#stack <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_QAI_files[1]))
+
+# new path on local
+QAI_stack <- stack(paste0("data/QAI/", QAI_files[i]))
+
+(ext_scene_one <- extent(QAI_stack))
+# extent of hyperspec stack
 (ext_scene_two <- extent(hyperspec))
 (common.extent <- intersect(ext_scene_one, ext_scene_two))
-roi <- c(496665, 568665 , 4261665 , 4276665 )
+roi <- c(496665, 568665 , 4261665 , 4276665)
 
+#loop for QAI raster
+for (i in c(1:59)) {
+  QAI_stack <- stack(paste0("data/QAI/", landsat_QAI_files[i]))
+  QAI_stack <- crop(QAI_stack, roi)
+  mask <- calc(QAI_stack, fun = fill_pixels)
 
-# QAI raster
-# for (i in c(1:59)) {
-#   stack <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_QAI_files[i]))
-# 
-#   stack <- crop(stack, roi)
-#   mask <- calc(stack, fun = fill_pixels)
-# 
-#   if (i==1) {
-#     final_mask_stack <- mask
-# 
-#   } else {
-# 
-#     final_mask_stack <- stack(final_mask_stack, mask)
-#     print(paste("moin layer", i, "is done"))
-# 
-#   }
-# }
+  if (i==1) {
+    final_mask_stack <- mask
 
-# writeRaster(final_mask_stack, "O:/SS21_EO/Hyperspectral/data/landsat/landsat_cloud_mask",
-#             #overwrite=TRUE,
-#             format='GTiff')
+  } else {
 
-final_mask_stack <- stack("data/landsat_cloud_mask.tif")
+    final_mask_stack <- stack(final_mask_stack, mask)
+    print(paste("moin layer", i, "is done"))
+
+  }
+}
 
 plot(final_mask_stack)
 
-# mask landsat images
+writeRaster(final_mask_stack, "data/landsat_cloud_mask_20072021",
+          # overwrite=TRUE,
+            format='GTiff')
 
+# import created final mask stack
+# original computed on HU desktop
+final_mask_stack <- stack("data/landsat_cloud_mask.tif")
+# secound run computed on local machine 
+final_mask_stack_2 <- stack("data/landsat_cloud_mask_20072021.tif")
+# visual assesment of masks
+plot(final_mask_stack[[45:55]])
+plot(final_mask_stack_2[[45:55]])
+
+
+# loop used to mask landsat images
 for (i in c(1:59)) {
-  BOA_stack <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_BOA_files[i]))
-  
+  # stack each image in directory 
+  BOA_stack <- stack(paste0("data/BOA/", landsat_BOA_files[i]))
+
   # crop size
   BOA_stack <- crop(BOA_stack, roi)
   
   if(i==1)  {
-    
+    # apply mask
     final_masked_BOA <- mask(BOA_stack,
                              mask = final_mask_stack[[i]], 
-                             maskvalue =1)
+                             maskvalue = 1) #takes everything that is a 1 in our mask and makes an NA
     
   } else { 
     
     masked_BOA <-  mask(BOA_stack,
                         mask = final_mask_stack[[i]], 
-                        maskvalue =1)
-    
+                        maskvalue =1) #takes everything that is a 1 in our mask and makes an NA
+    # add mask of individual image to stack of already masked BOAs
     final_masked_BOA <- stack(final_masked_BOA, masked_BOA)
     print(paste("layer", i, "is done"))
     
   }
 }
 
-writeRaster(final_masked_BOA, "O:/SS21_EO/Hyperspectral/data/landsat/masked_BOA",
+writeRaster(final_masked_BOA, "data/masked_BOA_21072021",
             #overwrite=TRUE,
             format='GTiff')
 
-landsat_BOA <- stack("data/landsat_BOA_filtered.tif")
+landsat_BOA <- stack("data/masked_BOA_21072021.tif")
 
-plot(landsat_BOA)
+# filter reluctance values from BOA images 
+landsat_BOA_filtered <- landsat_BOA[(landsat_BOA>10000) | (landsat_BOA<0)] <- NA
 
+writeRaster(landsat_BOA_filtered, "data/landsat_BOA_filtered_21072021.tif",
+            #overwrite=TRUE,
+            format='GTiff')
 
+landsat_BOA <- stack("data/landsat_BOA_filtered_21072021.tif")
+
+plot(landsat_BOA[[264:276]])
+
+# relic code used to count the frequency of of QA pixel types
 # QAI <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_QAI_files[59:60]))
 # plot(QAI)
 # (QAI_count <- freq(QAI) %>% as.data.frame() %>% arrange(-count))
 # 
-# 
-# # stack all the BOA
-# stack <- stack(paste0("O:/SS21_EO/Hyperspectral/data/landsat/", landsat_BOA_files[59:60])) # change to 60 or n 
-# plot(stack)
-# 
-# 
-# 
-# # Extent cropping 
-# (ext_scene_one <- extent(stack))
-# (ext_scene_two <- extent(hyperspec))
-# (common.extent <- intersect(ext_scene_one, ext_scene_two))
-# roi <- c(496665, 568665 , 4261665 , 4276665 )
-# multispec <- crop(stack, roi)
-# QAI <- crop(QAI, roi)
-# plot(multispec)
-# plot(QAI)
-
-# Creating a cloud mask ----
-
-
-mask_highconf <- function(x){
-  bs <- intToBits(x)
-  return ( ((bs[1]) | (bs[6] & bs[7]) | (bs[8] & bs[9])) == T)
-}
-
-fill_pixels <- function(x) {((intToBits(x)[1] == T))}
-
-for (i in length(QAI)) {
-  mask <- calc(QAI[[i]], fun = pixels)
-}
-
-mask <- calc(QAI, fun = fill_pixels)
-plot(mask)
 
 # tassel cap transformation ----
 
@@ -154,10 +164,11 @@ plot(mask)
 tcc <- matrix(c( 0.2043,  0.4158,  0.5524, 0.5741,  0.3124,  0.2303, 
                  -0.1603, -0.2819, -0.4934, 0.7940, -0.0002, -0.1446,
                  0.0315,  0.2021,  0.3102, 0.1594, -0.6806, -0.6109), 
+              # assign names to bands 
               dimnames = list(
                 c('blue', 'green', 'red', 'nIR', 'swIR1', 'swIR2'),
                 c('brightness', 'greenness', 'wetness')), ncol = 3)
-
+# visual check
 print(tcc)
 
 # reduced dataset for testing
@@ -166,12 +177,14 @@ print(tcc)
 # landsat_reduced <- stack(I_imgs[[1]])
 # hist(landsat_reduced) # for outlier check
 #
-landsat_BOA[(landsat_BOA>10000) | (landsat_BOA<0)] <- NA
+
 
 # loop for tcb
 
 for (i in c(1:59)) {
   
+  # seperate hanging to create final final_landsat_BOA_tcb stack
+  # note the loop is performed in iterations of 6 for each landsat image (once for each band)
   if (i==1) {
     
     loop_images <- c(1:6)
@@ -425,6 +438,11 @@ writeRaster(final_landsat_BOA_tcw, "data/tcb_stm.tif",
                        #overwrite=TRUE,
                        format='GTiff')
 
+tcb_stm_stack <- stack("data/tcb_stm.tif")
+names(tcb_stm_stack) <- c("IQR", "mean", "median", 
+                          "Std.dev", "max", "min")
+plot(tcb_stm_stack)
+
 # tcg stm ----
 # Calculate p25 across rows in matrix
 tcg_matrix_p25 <- apply(tcg_matrix,1, FUN=p25, na.rm=T)
@@ -515,6 +533,11 @@ tcg_stm <- stack(tcg_matrix_IQR_raster, tcg_matrix_mean_raster,
 writeRaster(final_landsat_BOA_tcw, "data/tcg_stm.tif",
                        #overwrite=TRUE,
                        format='GTiff')
+
+tcg_stm_stack <- stack("data/tcg_stm.tif")
+names(tcg_stm_stack) <- c("IQR", "mean", "median", 
+                          "Std.dev", "max", "min")
+plot(tcg_stm_stack)
 
 # tcw stm ----
 # Calculate p25 across rows in matrix
@@ -607,7 +630,10 @@ writeRaster(final_landsat_BOA_tcw, "data/tcw_stm.tif",
                        #overwrite=TRUE,
                        format='GTiff')
 
-
+tcw_stm_stack <- stack("data/tcw_stm.tif")
+names(tcw_stm_stack) <- c("IQR", "mean", "median", 
+                          "Std.dev", "max", "min")
+plot(tcw_stm_stack)
 
 
 
@@ -661,162 +687,6 @@ sli_long <- sli %>%
 ggplot(sli_long, aes(x=wavelength, y= reflectance, color=type)) +
   geom_line() +
   theme_classic()
-
-
-# Let´s now model a "mixed pixel". ----
-# We can simply do this be defining proportions of the different surface components.
-fraction_PV <- 0.1
-fraction_NPV <- 0.8
-fraction_soil <- 0.05
-fraction_shade <- 0.05
-
-# Do we violate the assumption that all surface components represent 100% of the surface area?
-if((fraction_PV + fraction_NPV + fraction_soil+ fraction_shade) != 1) print('Fractions don´t sum to 1.')
-
-# Create a linear mixture of the endmember spectra, based on the defined proportions.
-model_spectrum <- fraction_PV * sli$PV + 
-  fraction_NPV * sli$NPV +
-  fraction_soil * sli$soil + 
-  fraction_shade * sli$shade
-
-# We could simulate imperfect measurements by adding random noise.
-noise <- rnorm(10, mean=0, sd=0.02)
-
-# Append the modeled spectrum to the endmembers data.frame
-sli$model_spectrum <- model_spectrum + noise
-
-# Convert the spectra into long format for plotting with ggplot2
-sli_vis <- pivot_longer(sli, -c(band, wavelength)) 
-
-# Visualize the modeled spectrum in comparison to the endmember spectra
-ggplot(sli_vis) + 
-  geom_line(aes(x=wavelength, y=value, color=name, linetype=name))+
-  scale_color_manual(values=c("black", "steelblue", "darkgreen", "darkgrey","firebrick"), name="Spectrum")+
-  scale_linetype_manual(values=c("dotdash", rep("solid", 4)), name="Spectrum")+
-  scale_y_continuous(labels=seq(0,1,0.1), breaks=seq(0,10000,1000))+
-  theme_bw()+
-  theme(panel.grid=element_blank())+
-  labs(x="Wavelength (nm)", y="Reflectance")
-
-# Generating synthetic training data using the spectral lib
-
-
-synthMix <- function(
-  sli, # spectral library dataframe containing 
-  # spectra (columns) and reflectances (rows)
-  n_mix, # desired number of mixtures
-  mix_complexity, # numbers of spectra within a mixture
-  # vector, same length as mix_likelihood
-  mix_likelihood, # proportion of mixtures with respective complexity as
-  # vector, same length as mix_complexity, must sum to 1
-  target_class, # mixtures will be calculated for this class
-  other_classes){ # other classes which should be included in the mixtures
-  
-  assert_that(sum(mix_likelihood)==1) 
-  
-  # total number of classes
-  em_total <- length(c(target_class, other_classes)) 
-  
-  # empty dataframe to store training data
-  ds_training <- setNames(data.frame(matrix(ncol = nrow(sli) + 1, nrow = 0)), 
-                          c(paste("B", c(1:nrow(sli)), sep = ""), "fraction")) 
-  
-  # iterator for generating each synthetic mixture 
-  for (i in 1:n_mix) { 
-    
-    if(length(mix_likelihood) ==1){
-      n_em = mix_complexity
-    }
-    else{
-      # sample mixing complexity based on mixing likelihoods
-      n_em = sample(as.vector(mix_complexity), 
-                    size = 1, 
-                    prob = as.vector(mix_likelihood)) 
-    }
-    # select EMs which will be included in the mixture
-    sample_em <- sample(other_classes, n_em - 1) 
-    
-    # get target EM and mixing EMs from SLI
-    df <- sli[, c(target_class, sample_em)] 
-    
-    #randomly sample weight for target endmember including 0
-    w1 <- (sample.int(10001, size = 1) - 1) 
-    
-    # calculate weight for remaining endmember 
-    if (n_em == 2) {
-      w2 <- 10000 - w1
-      ws = c(w1, w2)
-      
-      assert_that(sum(ws)==10000)
-      
-    }
-    
-    # sample weights for two other endmembers
-    if (n_em == 3) { 
-      # remaining weight
-      wr = (10000 - w1) 
-      # randomly sample weight for second endmember including 0
-      w2 = (sample.int(wr + 1, size = 1) - 1) 
-      w3 = 10000 - (w1 + w2)
-      ws = c(w1, w2, w3)
-      
-      w_sum <- sum(ws)
-      
-      assert_that(w_sum==10000)
-      
-    }
-    # scale weights between 0 and 1
-    ws <- ws/10000 
-    # multiply spectra by their weight and 
-    # calculate mixed spectrum as sum of weighted reflectances
-    mixture = rowSums(t(t(df) * ws)) 
-    
-    # add weight (i.e. the cover fraction)
-    train_mix <- c(mixture, ws[1]) 
-    # turn  into dataframe
-    train_mix <- as.data.frame(t(train_mix)) 
-    colnames(train_mix) <- c(paste("B", c(1:nrow(sli)), sep = ""), "fraction") 
-    
-    # add mixed spectrum to training dataset
-    ds_training <- rbind(ds_training, train_mix) 
-    
-  }
- 
-  
-   # add original library spectra to the training data
-  # vector of target class spectrum and cover fraction of 1
-  em_target <- c(sli[, target_class], 1) 
-  
-  # all other class spectra get a cover value of 0 for the target class 
-  em_rest <- data.frame((t(sli[, other_classes])), 
-                        "fraction"=rep(0,length(other_classes))) 
-  
-  em_set <- rbind(em_target, em_rest)
-  rownames(em_set) <- NULL
-  colnames(em_set) <- c(paste("B", c(1:nrow(sli)), sep=""),"fraction")
-  
-  ds_training <- rbind(ds_training, em_set)
-  
-  return(ds_training)
-  
-}
-
-###### REPLACE WITH OUR CLASSES 
-mix_veg <- synthMix(sli_snythmix, 
-                    n_mix=1000, 
-                    mix_complexity=(c(2)),
-                    mix_likelihood=c(1),
-                    target_class = "veg",
-                    other_classes = c("veg", "non_veg"))
-
-mix_non_veg <- synthMix(sli_snythmix, 
-                        n_mix=1000, 
-                        mix_complexity=(c(2)),
-                        mix_likelihood=c(1),
-                        target_class = "non_veg",
-                        other_classes = c("veg", "non_veg"))
-
-
 
 
 #  Modeling fractional cover ----
