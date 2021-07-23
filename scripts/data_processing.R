@@ -578,8 +578,13 @@ names(tcw_stm_stack) <- c("IQR", "mean", "median",
                           "Std.dev", "max", "min")
 plot(tcw_stm_stack)
 
+full_stm_stack <- stack(tcb_stm_stack, tcg_stm_stack, tcw_stm_stack)
 
+writeRaster(full_stm_stack, "data/full_stm_stack.tif",
+            # overwrite=TRUE,
+            format='GTiff')
 
+full_stm_stack <- stack("data/full_stm_stack.tif")
 
 # synthetic endmember mixing ----
 
@@ -612,7 +617,30 @@ sli_hyperspec_df <- sli_hyperspec %>%
   dplyr::select(-class_ID) %>% 
   rename(class_ID = Unnamed..0)
  
+# for landsat
 
+
+
+# extracting hyperspec points
+landsat_df <- raster::extract(landsat, training_data, sp=T) 
+
+df <- as.data.frame(landsat_df) %>% 
+  na.omit() %>% 
+  # remove coordinates 
+  dplyr::select(-coords.x1, -coords.x2)
+# colnames(df[,2:198]) <- str_sub(colnames(df[,2:198]), -23, -18)   
+
+#sub(".Nanometers.", "", colnames(df))
+#sub(".*...", "", colnames(df))
+
+write.csv(df, file = "spectral_library/spectral_library_landsat")
+
+# synthmix_hyperspec.csv created with python function "snythmix"
+sli_hyperspec <- read.csv("spectral_library/synthmix_landsat.csv")
+
+sli_hyperspec_df <- sli_landsat %>% 
+  dplyr::select(-class_ID) %>% 
+  rename(class_ID = Unnamed..0)
 
 # df <- as.data.frame(hyperspec_df) %>% 
 #   select(-1) %>% 
