@@ -28,7 +28,7 @@ fill_pixels <- function(x) {((intToBits(x)[1] == T))}
 ### Import and manipulation ----
 
 # hyperspectral data 
-hyperspec <- stack("data/2013SU_BA_ENMAP_L2sim.bsq")
+#hyperspec <- stack("data/2013SU_BA_ENMAP_L2sim.bsq")
 # create vector of names
 names <- names(hyperspec)
 # use sub to extract standard ".000000.Nanometers." string at end of col name
@@ -38,6 +38,12 @@ bands <- paste0("wavelength_", c(sub('.*bsq...', '', bands)))
 
 # assign the correct band names to the hyperspec stack
 names(hyperspec) <- bands
+
+writeRaster(hyperspec, "data/2013SU_BA_ENMAP_L2sim_renamed.bsq",
+            # overwrite=TRUE,
+            format='GTiff')
+
+hyperspec <- stack("data/2013SU_BA_ENMAP_L2sim_renamed.tif")
 
 plot(hyperspec)
 
@@ -142,9 +148,9 @@ writeRaster(final_masked_BOA, "data/masked_BOA_21072021",
 landsat_BOA <- stack("data/masked_BOA_21072021.tif")
 
 # filter reluctance values from BOA images 
-landsat_BOA_filtered <- landsat_BOA[(landsat_BOA>10000) | (landsat_BOA<0)] <- NA
+ landsat_BOA[(landsat_BOA>10000) | (landsat_BOA<0)] <- NA
 
-writeRaster(landsat_BOA_filtered, "data/landsat_BOA_filtered_21072021.tif",
+writeRaster(landsat_BOA, "data/landsat_BOA_filtered_21072021.tif",
             #overwrite=TRUE,
             format='GTiff')
 
@@ -183,7 +189,7 @@ print(tcc)
 
 for (i in c(1:59)) {
   
-  # seperate hanging to create final final_landsat_BOA_tcb stack
+  # separate handeling to create final final_landsat_BOA_tcb stack
   # note the loop is performed in iterations of 6 for each landsat image (once for each band)
   if (i==1) {
     
@@ -197,7 +203,7 @@ for (i in c(1:59)) {
     print("tasseled cap brightness 1 is done")
     
   } else {
-    
+    # logic for loading correct bands (per image) to be converted to tc
     loop_images <-c((((i-1)*6)+1):((i)*6))
     
     tcb <- sum(landsat_BOA[[loop_images]] * tcc[,1])
@@ -212,7 +218,7 @@ for (i in c(1:59)) {
   }
 }
 
-writeRaster(final_landsat_BOA_tcb, "data/tcb.tif",
+writeRaster(final_landsat_BOA_tcb, "data/tcb_21072021.tif",
             #overwrite=TRUE,
             format='GTiff')
 
@@ -247,7 +253,7 @@ for (i in c(1:59)) {
   }
 }
 
-writeRaster(final_landsat_BOA_tcg, "data/tcg.tif",
+writeRaster(final_landsat_BOA_tcg, "data/tcg_21072021.tif",
             #overwrite=TRUE,
             format='GTiff')
 # loop for tcw
@@ -283,92 +289,28 @@ for (i in c(1:59)) {
   }
 }
 
-writeRaster(final_landsat_BOA_tcw, "data/tcw.tif",
+writeRaster(final_landsat_BOA_tcw, "data/tcw_21072021.tif",
             #overwrite=TRUE,
             format='GTiff')
 
 
 
-# for for all tasseled cap components
-# for (i in c(1:2)) {
-# 
-# if (i==1) {
-#   
-#   loop_images <- c(1:6)
-#   
-#   tcb <- sum(landsat_reduced[[loop_images]] * tcc[,1])
-#   tcg <- sum(landsat_reduced[[loop_images]] * tcc[,2])
-#   tcw <- sum(landsat_reduced[[loop_images]] * tcc[,3])
-#   
-#   final_landsat_reduced_tc <- stack(c(tcb,tcg,tcw))
-#   
-#   print("tassel cap 1 is done")
-#   
-# } else {
-#   
-#   loop_images <-c((((i-1)*6)+1):((i)*6))
-#   
-#   tcb <- sum(landsat_reduced[[loop_images]] * tcc[,1])
-#   tcg <- sum(landsat_reduced[[loop_images]] * tcc[,2])
-#   tcw <- sum(landsat_reduced[[loop_images]] * tcc[,3])
-#   
-#   landsat_reduced_tc <- stack(c(tcb,tcg,tcw))
-#   
-#   final_landsat_reduced_tc <- stack(final_landsat_reduced_tc, landsat_reduced_tc)
-#   
-#   print(paste0("tassel cap", i,  "is done"))
-#   
-# }
-# }
-
-# plot(final_landsat_reduced_tc)
-# plotRGB(final_landsat_reduced_tc, stretch ="hist")
-
 # Creating spectral temporal metrics ----
 
-final_landsat_BOA_tcb <- stack("data/tcb.tif")
-final_landsat_BOA_tcg <- stack("data/tcg.tif")
-final_landsat_BOA_tcw <- stack("data/tcw.tif")
+final_landsat_BOA_tcb <- stack("data/tcb_21072021.tif")
+final_landsat_BOA_tcg <- stack("data/tcg_21072021.tif")
+final_landsat_BOA_tcw <- stack("data/tcw_21072021.tif")
 
+# convert to matrix, inorder to have a final output of one layer per STM
 tcb_matrix <- as.matrix(final_landsat_BOA_tcb)
 tcg_matrix <- as.matrix(final_landsat_BOA_tcg)
 tcw_matrix <- as.matrix(final_landsat_BOA_tcw) 
 
 
-# create function that calculates 0.25 percentile for later use in apply()
-p25 <- function(x){
-  return(quantile(x, 0.25, na.rm =T))[2]
-}
-
-# create function that calculates 0.25 percentile for later use in apply()
-p75 <- function(x){
-  return(quantile(x, 0.75, na.rm =T))[2]
-}
-
-
 # tcb stm ----
-# Calculate p25 across rows in matrix
-#library(parallel)
-#tcb_matrix_p25 <-  mclapply(tcb_matrix,1, FUN=p25, na.rm=T, mc.cores = 3)
-
-# Write results to empty raster
-tcb_matrix_p25_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
-                                ncols=final_landsat_BOA_tcb@ncols, 
-                                crs=final_landsat_BOA_tcb@crs, 
-                                vals=tcb_matrix_p25,
-                                ext=extent(final_landsat_BOA_tcb))
-
-# Calculate p75 across rows in matrix
-tcb_matrix_p75 <- lapply(tcb_matrix,1, FUN=p75, na.rm=T)
-
-# Write results to empty raster
-tcb_matrix_p75_raster <- raster(nrows=final_landsat_BOA_tcb@nrows, 
-                                ncols=final_landsat_BOA_tcb@ncols, 
-                                crs=final_landsat_BOA_tcb@crs, 
-                                vals=tcb_matrix_p75,
-                                ext=extent(final_landsat_BOA_tcb))
 
 # Calculate IQR across rows in matrix
+# na.rm = T in order to prevent all values to become NA
 tcb_matrix_IQR <- apply(tcb_matrix,1, FUN=IQR, na.rm=T)
 
 # Write results to empty raster
@@ -434,11 +376,12 @@ tcb_stm <- stack(tcb_matrix_IQR_raster, tcb_matrix_mean_raster,
                  tcb_matrix_median_raster, tcb_matrix_sd_raster,
                  tcb_matrix_max_raster, tcb_matrix_min_raster)
 
-writeRaster(final_landsat_BOA_tcw, "data/tcb_stm.tif",
+writeRaster(tcb_stm, "data/tcb_stm_21072021.tif",
                        #overwrite=TRUE,
                        format='GTiff')
 
-tcb_stm_stack <- stack("data/tcb_stm.tif")
+tcb_stm_stack <- stack("data/tcb_stm_21072021.tif")
+# assign STM names to layers
 names(tcb_stm_stack) <- c("IQR", "mean", "median", 
                           "Std.dev", "max", "min")
 plot(tcb_stm_stack)
@@ -530,11 +473,11 @@ tcg_stm <- stack(tcg_matrix_IQR_raster, tcg_matrix_mean_raster,
                  tcg_matrix_median_raster, tcg_matrix_sd_raster,
                  tcg_matrix_max_raster, tcg_matrix_min_raster)
 
-writeRaster(final_landsat_BOA_tcw, "data/tcg_stm.tif",
+writeRaster(tcg_stm, "data/tcg_stm_21072021.tif",
                        #overwrite=TRUE,
                        format='GTiff')
 
-tcg_stm_stack <- stack("data/tcg_stm.tif")
+tcg_stm_stack <- stack("data/tcg_stm_21072021.tif")
 names(tcg_stm_stack) <- c("IQR", "mean", "median", 
                           "Std.dev", "max", "min")
 plot(tcg_stm_stack)
@@ -626,11 +569,11 @@ tcw_stm <- stack(tcw_matrix_IQR_raster, tcw_matrix_mean_raster,
                  tcw_matrix_median_raster, tcw_matrix_sd_raster,
                  tcw_matrix_max_raster, tcw_matrix_min_raster)
 
-writeRaster(final_landsat_BOA_tcw, "data/tcw_stm.tif",
-                       #overwrite=TRUE,
+writeRaster(tcw_stm, "data/tcw_stm_21072021.tif",
+                      # overwrite=TRUE,
                        format='GTiff')
 
-tcw_stm_stack <- stack("data/tcw_stm.tif")
+tcw_stm_stack <- stack("data/tcw_stm_21072021.tif")
 names(tcw_stm_stack) <- c("IQR", "mean", "median", 
                           "Std.dev", "max", "min")
 plot(tcw_stm_stack)
@@ -640,6 +583,7 @@ plot(tcw_stm_stack)
 
 # synthetic endmember mixing ----
 
+# read in training data for spectral library (collected in QGIS)
 training_data <- readOGR(dsn='spectral_library/spectral_library.shp')
 
 
@@ -652,6 +596,7 @@ hyperspec_df <- raster::extract(hyperspec, training_data, sp=T)
 
 df <- as.data.frame(hyperspec_df) %>% 
   na.omit() %>% 
+  # remove coordinates 
   dplyr::select(-coords.x1, -coords.x2)
 # colnames(df[,2:198]) <- str_sub(colnames(df[,2:198]), -23, -18)   
 
@@ -697,25 +642,43 @@ cv <- tune.control(cross = 3) # change for final
 
 # Use tune.svm() for a grid search of the gamma and cost parameters
 
-sli_hyperspec_NV <- sli_hyperspec_df %>% 
-  filter(class_ID == 5) %>% 
-  dplyr::select(-class_ID)
+# test code
 
-svm_NV_test <-  svm(fraction~., 
-                 data = sli_hyperspec_NV, 
-                 kernel = 'radial',
-                 gamma = 1, 
-                 cost = 1, 
-                 epsilon = 0.001,
-                 tunecontrol = cv)
+sli_hyperspec_grouped <- sli_hyperspec_df %>% 
+  group_by(class_ID) %>% 
+  group_split() %>% 
+ map(., dplyr::select, -"class_ID")
 
-svm.tune <- tune.svm(fraction~., 
-                     data = sli_hyperspec_df, 
-                     kernel = 'radial', 
-                     gamma = (0.01:100), 
-                     cost = 10^(-2:2), 
-                     epsilon = 0.001,
-                     tunecontrol = cv)
+
+# old code for only class_ID
+# sli_hyperspec_NV <- sli_hyperspec_df %>% 
+#   filter(class_ID == 5) %>% 
+#   dplyr::select(-class_ID)
+
+# svm_NV_test <-  svm(fraction~., 
+#                     data = sli_hyperspec_NV, 
+#                     kernel = 'radial',
+#                     gamma = 1, 
+#                     cost = 1, 
+#                     epsilon = 0.001,
+#                     tunecontrol = cv)
+
+svm_list <- sli_hyperspec_grouped %>% map(~ svm(fraction~., 
+                                              data        = .,
+                                              kernel      = 'radial',
+                                              gamma       = 1, 
+                                              cost        = 1, 
+                                              epsilon     = 0.001,
+                                              tunecontrol = cv))
+
+
+svm.tune_list <-  sli_hyperspec_grouped %>% map(~ tune.svm(fraction~., 
+                                                           data        = as.data.frame(.), 
+                                                           kernel      = 'radial', 
+                                                           gamma       = (0.01:100), 
+                                                           cost        = 10^(-2:2), 
+                                                           epsilon     = 0.001,
+                                                           tunecontrol = cv))
 
 # Store the best model in a new object
 svm.best <- svm.tune$best.model
