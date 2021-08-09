@@ -1,0 +1,32 @@
+I guess these papers from the course might be useful for us. (Philip)
+
+- Griffiths et al., 2014:
+ - Landsat
+ - change classification and more
+ - composites
+ - forest disturbance context
+
+- Breiman, 2001:
+ - about Random Forest
+
+- Okujeni et al., 2015:
+ - hyperspectral
+ - urban-rural gradient
+ - SVR
+ - synth. mixed training data
+
+- Maxwell et al., 2018:
+ - information on different machine learning algorithms
+
+- Olofsson et al., 2014:
+ - info on e. g. accuracy assessment (but might only be important in change mapping context)
+
+- FAO, 2016:
+ - lots of info on accuracy assessment (but don't know, if useful for us)
+
+- Mueller et al., 2015:
+ - STMs
+
+- Song et al., 2017:
+ - Landsat
+ - something about multi-temporal metrics
