@@ -4,6 +4,9 @@ Please note: Citation might be wrong here (regarding first author)
 
 
 
+Asner, G.P., Martin, R.E., Anderson, C.B., Knapp, D.E., 2015. Quantifying forest canopy traits: imaging spectroscopy versus field survey. Remote Sens. Environ. 158, 15–27. 
+
+
     • Czekajlo et al., 2020:
         ◦ “The urban greenness score: A satellite-based metric for multi-decadal characterization of urban land dynamics”
         ◦ includes info on vegetation unmixing (in urban context) based on Landsat data 
