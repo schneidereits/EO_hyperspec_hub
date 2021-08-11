@@ -1,0 +1,107 @@
+Potentially interesting publications (only checked certain parts of paper)
+
+Please note: Citation might be wrong here (regarding first author)
+
+
+
+Asner, G.P., Martin, R.E., Anderson, C.B., Knapp, D.E., 2015. Quantifying forest canopy traits: imaging spectroscopy versus field survey. Remote Sens. Environ. 158, 15–27. 
+
+
+    • Czekajlo et al., 2020:
+        ◦ “The urban greenness score: A satellite-based metric for multi-decadal characterization of urban land dynamics”
+        ◦ includes info on vegetation unmixing (in urban context) based on Landsat data 
+(not just Landsat 7 and -8)
+        ◦ also multi-temporal aspect here, but maybe different approach than ours
+
+    • Pacheco, McNairn, 2010:
+        ◦ “Evaluating multispectral remote sensing and spectral unmixing analysis for cropresidue mapping”
+        ◦ cool description on spectral unmixing 
+        ◦ agricultural context
+        ◦ measuring residues on fields
+        ◦ endmember collection methods 
+        ◦ using SPOT and Landsat-5 
+
+    • Gudex-Cross et al., 2017:
+        ◦ “Enhanced forest cover mapping using spectral unmixing andobject-based classification of multi-temporal Landsat imagery”
+        ◦ forest context
+        ◦ spectral unmixing (also info on that)
+        ◦ Landsat
+        ◦ multi-temporal
+        ◦ info on motivation to classify forest cover in detail (e. g. regarding climate change impacts and forest management) 
+        ◦ advantages of landsat etc. versus data intensive hyperspectral etc. 
+
+    • Olthof, Fraser, 2007:
+        ◦ “Mapping northern land cover fractions using Landsat ETM+”
+        ◦ similar classes to ours
+        ◦ unmixing
+        ◦ with use of Landsat ETM +
+        ◦ different modelling approaches tested (e. g. using regression trees)
+
+    • Mezned et al., 2016:
+        ◦ “Mine Wastes Environmental Impact Mapping Using Landsat ETM+ and SPOT 5 Data Fusion in the North of Tunisia” 
+        ◦ other use for unmixing → pollution due to mining
+        ◦ including use of LandSat
+
+    • Hasan et al., 2019:
+        ◦ “Cumulative disturbances to assess forest degradation using spectral unmixing in the northeastern Amazon”
+        ◦ unmixing with Landsat in Amazon
+        ◦ analysing disturbances etc.
+        ◦ also involving multi-temporal analysis
+
+    • Nguyen et al., 2016:
+        ◦ “Monitoring Mangrove Forest Changes from Multi-temporal Landsat Data in Can Gio Biosphere Reserve, Vietnam”
+        ◦ Landsat 
+        ◦ unmixing of vegetation classes in Vietnam
+        ◦ including use of Tasseled Cap Transformation
+
+    • Judd et al., 2007:
+        ◦ “MAPPING SALT MARSH VEGETATION USING AERIAL HYPERSPECTRAL IMAGERY AND LINEAR UNMIXING IN HUMBOLDT BAY, CALIFORNIA “
+        ◦ airborne hyperspectral
+        ◦ unmixing
+        ◦ salt marsh vegetation in California
+
+    • Jeanicke et al., 2020:
+        ◦ “Brightness gradient-corrected hyperspectral image mosaics for fractional vegetation cover mapping in northern California” 
+        ◦ correction methods for flight lines for airborne hyperspec
+        ◦ could maybe mention somewhere in discussion
+
+    • Févotte, Dobigeon, 2015:
+        ◦ “Nonlinear Hyperspectral Unmixing With Robust Nonnegative Matrix Factorization“
+        ◦ something about advantages of non-linear unmixing
+        ◦ hyperspectral 
+
+    • Oeser et al., 2017:
+        ◦ “Using Intra-Annual Landsat Time Series for Attributing Forest Disturbance Agents in Central Europe” 
+        ◦ Landsat (e. g. ETM +)
+        ◦ intra-annual STMs
+        ◦ forest disturbances context
+
+    • Somers, Asner, 2013:
+        ◦ “Multi-temporal hyperspectral mixture analysis and feature selection forinvasivespecies mapping in rainforests”
+        ◦ hyperspectral
+        ◦ multi-temporal versus uni-temporal
+        ◦ band selection
+        ◦ dealing with cloud cover
+        ◦ context = invasive species in rainforests
+
+    • Rodriguez Jr. et al., 2018:
+        ◦ “Multi-Temporal and Spectral Analysis of High-Resolution Hyperspectral Airborne Imagery for Precision Agriculture: Assessment of Wheat Grain Yield and Grain Protein Content”
+        ◦ hyperspectral
+        ◦ multi-temporal
+        ◦ northwestern Mexico
+        ◦ agricultural context
+        ◦ vegetation indices 
+        ◦ results cool here? 
+
+    • Morier et al., 2015:
+        ◦ “In-Season Nitrogen Status Assessment and Yield Estimation Using Hyperspectral Vegetation Indices in a Potato Crop”
+        ◦ terrestrial hyperspectral
+        ◦ indices
+        ◦ agricultural context
+
+    • Stagakis et al., 2010:
+        ◦ “Monitoring canopy biophysical and biochemical parameters in ecosystem scale usingsatellite hyperspectral imagery: An application on aPhlomis fruticosaMediterraneanecosystem using multiangular CHRIS/PROBA observations”
+        ◦ hyperspectral
+        ◦ narrow band indices
+        ◦ vegetation characteristics
+        ◦ Mediterranean ecosystem
