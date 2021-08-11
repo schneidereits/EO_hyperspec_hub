@@ -31,3 +31,15 @@ tcg_stm_21072021.tif
 tcw_21072021.tif
 tcw_stm_21072021.tif
 full_stm_stack.tif
+hyperspec_rf.rds
+hyperspec_rf_tuned.rds
+landsat_rf.rds
+landsat_rf_tuned.rds
+prediction_hyperspec.tif
+prediction_landsat.tif
+prediction_rf_hyperspec.tif
+prediction_rf_landsat.tif
+prediction_rf_tune_hyperspec.tif
+prediction_rf_tuned_diff.tif
+prediction_rf_tuned_diff_mean.tif
+prediction_rf_tuned_landsat.tif

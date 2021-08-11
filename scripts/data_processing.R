@@ -580,11 +580,23 @@ plot(tcw_stm_stack)
 
 full_stm_stack <- stack(tcb_stm_stack, tcg_stm_stack, tcw_stm_stack)
 
+
+
 writeRaster(full_stm_stack, "data/full_stm_stack.tif",
-            # overwrite=TRUE,
+            #overwrite=TRUE,
             format='GTiff')
 
 full_stm_stack <- stack("data/full_stm_stack.tif")
+names <-  c("tcb_IQR", "tcb_mean", "tcb_median", 
+            "tcb_Std.dev", "tcb_max", "tcb_min",
+            "tcg_IQR", "tcg_mean", "tcg_median", 
+            "tcg_Std.dev", "tcg_max", "tcg_min",
+            "tcw_IQR", "tcw_mean", "tcw_median", 
+            "tcw_Std.dev", "tcw_max", "tcw_min")
+
+names(full_stm_stack) <- names
+
+plot(full_stm_stack)
 
 # synthetic endmember mixing ----
 
@@ -622,7 +634,7 @@ sli_hyperspec_df <- sli_hyperspec %>%
 
 
 # extracting hyperspec points
-landsat_df <- raster::extract(landsat, training_data, sp=T) 
+landsat_df <- raster::extract(full_stm_stack, training_data, sp=T) 
 
 df <- as.data.frame(landsat_df) %>% 
   na.omit() %>% 
@@ -636,41 +648,23 @@ df <- as.data.frame(landsat_df) %>%
 write.csv(df, file = "spectral_library/spectral_library_landsat")
 
 # synthmix_hyperspec.csv created with python function "snythmix"
-sli_hyperspec <- read.csv("spectral_library/synthmix_landsat.csv")
+sli_landsat <- read.csv("spectral_library/synthmix_landsat.csv")
 
-sli_hyperspec_df <- sli_landsat %>% 
+sli_landsat_df <- sli_landsat %>% 
   dplyr::select(-class_ID) %>% 
   rename(class_ID = Unnamed..0)
 
-# df <- as.data.frame(hyperspec_df) %>% 
-#   select(-1) %>% 
-#   na.omit() %>% 
-#   select(-coords.x1, -coords.x2) 
-
-names(df)
-
-
-sli_snythmix <- sli
-head(sli)
-sli$wavelength <- c(493, 560, 665, 704, 740, 783, 883, 865, 1610, 2190)
-sli_long <- sli %>% 
-  pivot_longer(names_to = "type", values_to = "reflectance", cols = c(2:5))
-
-
-ggplot(sli_long, aes(x=wavelength, y= reflectance, color=type)) +
-  geom_line() +
-  theme_classic()
 
 
 #  Modeling fractional cover ----
 
+# hyperspec SVM ----
 
 # Define accuracy from 10-fold cross-validation as optimization measure
-cv <- tune.control(cross = 3) # change for final 
+cv <- tune.control(cross = 10) # change for final 
 
 # Use tune.svm() for a grid search of the gamma and cost parameters
 
-# test code
 
 sli_hyperspec_grouped <- sli_hyperspec_df %>% 
   group_by(class_ID) %>% 
@@ -715,17 +709,242 @@ svm.best <- svm.tune$best.model
 print(svm.best$gamma)
 print(svm.best$cost)
 
+classes <- list("conifer", "decid", "shrub", "NW", "NV")
+for (i in 1:length(classes)) {
+  
+  svm <- svm_list[[i]]
+  prediction_hyperspec <- predict(hyperspec, svm)
+  classes[[i]] <- prediction_hyperspec
+  
+}
+
+prediction_conifer <- classes[[1]]
+prediction_decid <- classes[[2]]
+prediction_shrub <- classes[[3]]
+prediction_NW <- classes[[4]]
+prediction_NV <- classes[[5]]
+
+prediction_stack_hyperspec <- stack(prediction_conifer, prediction_decid, prediction_shrub, 
+                                    prediction_NW, prediction_NV)
+
+writeRaster(prediction_stack_hyperspec, "data/prediction_hyperspec.tif", 
+           # datatype="INT1S", 
+            overwrite=T)
+
+# hyperspec random forest ----
+
+# Train a randomForest() classification model with the data.frame created in the 
+# prior step. Make sure to include only useful predictors.
+
+sli_hyperspec_grouped <- sli_hyperspec_df %>% 
+  group_by(class_ID) %>% 
+  group_split() %>% 
+  map(., dplyr::select, -"class_ID")
+
+rf_test <- randomForest(fraction~., 
+                          data = sli_hyperspec_grouped[[1]],
+                          ntree= 1000)
+
+rf_list <- sli_hyperspec_grouped %>% map(~ randomForest(fraction~., 
+                                                        data = (.),
+                                                        ntree= 1000))
+
+saveRDS(rf_list, file = "data/hyperspec_rf.rds")
+readRDS(file = "data/hyperspec_rf.rds")
+
+
+# Define accuracy from 5-fold cross-validation as optimization measure
+cv <- tune.control(cross = 10) 
+
+# Use tune.randomForest to assess the optimal combination of ntree and mtry
+rf.tune_list <- sli_hyperspec_grouped %>% map(~ randomForest(fraction~., 
+                                                             data        = (.),
+                                                             ntree       = 1000, 
+                                                             mtry        = c(64:65), 
+                                                             tunecontrol = cv))
+saveRDS(rf.tune_list, file = "data/hyperspec_rf_tuned.rds")
+readRDS(file = "data/hyperspec_rf_tuned.rds")
+
+# Store the best model in a new object for further use
+rf.best <- rf.tune$library(e1071)
+
+
+# Is the parametrization and/or different from your previous model?
+print(rf.tune)
+
+# RF predictions
+
+classes_rf <- list("conifer", "decid", "shrub", "NW", "NV")
+for (i in 1:length(classes_rf)) {
+  
+  rf <- rf.tune_list[[i]]
+  prediction_hyperspec <- predict(hyperspec, rf)
+  classes_rf[[i]] <- prediction_hyperspec
+  print(paste("rf", i, "is done"))
+  
+}
+
+prediction_rf_conifer <- classes_rf[[1]]
+prediction_rf_decid <- classes_rf[[2]]
+prediction_rf_shrub <- classes_rf[[3]]
+prediction_rf_NW <- classes_rf[[4]]
+prediction_rf_NV <- classes_rf[[5]]
+
+prediction_rf_tune_stack_hyperspec <- stack(prediction_rf_conifer, prediction_rf_decid, prediction_rf_shrub, 
+                                       prediction_rf_NW, prediction_rf_NV)
+
+writeRaster(prediction_rf_tune_stack_hyperspec, "data/prediction_rf_tune_hyperspec.tif", 
+            # datatype="INT1S", 
+            overwrite=T)
+
+# landsat SVM ----
+
+sli_landsat_grouped <- sli_landsat_df %>% 
+  group_by(class_ID) %>% 
+  group_split() %>% 
+  map(., dplyr::select, -"class_ID")
+
+
+# Define accuracy from 10-fold cross-validation as optimization measure
+cv <- tune.control(cross = 10) 
+svm_list <- sli_landsat_grouped %>% map(~ svm(fraction~., 
+                                                data        = .,
+                                                kernel      = 'radial',
+                                                gamma       = 1, 
+                                                cost        = 1, 
+                                                epsilon     = 0.001,
+                                                tunecontrol = cv))
+
+
+svm.tune_list <-  sli_landsat_grouped %>% map(~ tune.svm(fraction~., 
+                                                           data        = as.data.frame(.), 
+                                                           kernel      = 'radial', 
+                                                           gamma       = (0.01:100), 
+                                                           cost        = 10^(-2:2), 
+                                                           epsilon     = 0.001,
+                                                           tunecontrol = cv))
+
+# Store the best model in a new object
+svm.best <- svm.tune$best.model
+
+# Which parameters performed best?
+print(svm.best$gamma)
+print(svm.best$cost)
+
+
+# SVM predictions
+classes <- list("conifer", "decid", "shrub", "NW", "NV")
+for (i in 1:length(classes)) {
+  
+  svm <- svm_list[[i]]
+  prediction_landsat <- predict(full_stm_stack, svm)
+  classes[[i]] <- prediction_landsat
+  
+}
+
+prediction_conifer <- classes[[1]]
+prediction_decid <- classes[[2]]
+prediction_shrub <- classes[[3]]
+prediction_NW <- classes[[4]]
+prediction_NV <- classes[[5]]
+
+prediction_stack_landsat <- stack(prediction_conifer, prediction_decid, prediction_shrub, 
+                                    prediction_NW, prediction_NV)
+
+writeRaster(prediction_stack_landsat, "data/prediction_landsat.tif", 
+            # datatype="INT1S", 
+            overwrite=T)
+
+# landsat random forest ----
+
+# Train a randomForest() classification model with the data.frame created in the 
+# prior step. Make sure to include only useful predictors.
+
+sli_landsat_grouped <- sli_landsat_df %>% 
+  group_by(class_ID) %>% 
+  group_split() %>% 
+  map(., dplyr::select, -"class_ID")
+
+rf_test <- randomForest(fraction~., 
+                        data = sli_landsat_grouped[[1]],
+                        ntree= 1000)
+
+rf_list <- sli_landsat_grouped %>% map(~ randomForest(fraction~., 
+                                                        data = (.),
+                                                        ntree= 1000))
+
+saveRDS(rf_list, file = "data/landsat_rf.rds")
+readRDS(file = "data/landsat_rf.rds")
+
+
+# Define accuracy from 5-fold cross-validation as optimization measure
+cv <- tune.control(cross = 10) 
+
+# Use tune.randomForest to assess the optimal combination of ntree and mtry
+rf.tune_list <- sli_landsat_grouped %>% map(~ randomForest(fraction~., 
+                                                             data        = (.),
+                                                             ntree       = 1000, 
+                                                             mtry        = c(17:18), 
+                                                             tunecontrol = cv))
+
+saveRDS(rf.tune_list, file = "data/landsat_rf_tuned.rds")
+readRDS(file = "data/landsat_rf_tuned.rds")
+
+# Store the best model in a new object for further use
+rf.best <- rf.tune$library(e1071)
+
+
+# Is the parametrization and/or different from your previous model?
+print(rf.tune)
+
+# RF predictions
+
+classes_rf <- list("conifer", "decid", "shrub", "NW", "NV")
+for (i in 1:length(classes_rf)) {
+  
+  rf <- rf.tune_list[[i]]
+  prediction_landsat <- predict(full_stm_stack, rf)
+  classes_rf[[i]] <- prediction_landsat
+  print(paste("rf", i, "is done"))
+  
+}
+
+prediction_rf_conifer <- classes_rf[[1]]
+prediction_rf_decid <- classes_rf[[2]]
+prediction_rf_shrub <- classes_rf[[3]]
+prediction_rf_NW <- classes_rf[[4]]
+prediction_rf_NV <- classes_rf[[5]]
+
+prediction_rf_tune_stack_landsat <- stack(prediction_rf_conifer, prediction_rf_decid, prediction_rf_shrub, 
+                                            prediction_rf_NW, prediction_rf_NV)
+
+writeRaster(prediction_rf_tune_stack_landsat, "data/prediction_rf_tuned_landsat.tif", 
+            # datatype="INT1S", 
+            overwrite=T)
+
+# difference betweem hyperspec and landsat tuned rf prediction
+diff <- overlay(prediction_rf_tune_stack_hyperspec,
+                prediction_rf_tune_stack_landsat,
+        fun=function(r1, r2){return(abs(r1-r2))})
+diff_mean <- mean(diff)
+plot(diff)
+plot(diff_mean)
+
+writeRaster(diff, "data/prediction_rf_tuned_diff.tif", 
+            # datatype="INT1S", 
+            overwrite=T)
+
+writeRaster(diff_mean, "data/prediction_rf_tuned_diff_mean.tif", 
+            # datatype="INT1S", 
+            overwrite=T)
+
+
 # load in validation points from cooper et al 2020
 validation <- readOGR(dsn='validation/validation_poly.shp')
 
-prediction_hyperspec_NV <- predict(hyperspec, svm_NV_test)
-plot(prediction_hyperspec_NV)
+prediction_landsat <- svm_list %>% map(~ full_stm_stack, predict((.)[1]))
+plot(prediction_landsat)
 
-prediction_PV <- predict(s2, svm_test_PV)
-plot(prediction_PV)
-
-prediction_soil <- predict(s2, svm_test_soil)
-plot(prediction_soil)
 
 writeRaster(prediction_NPV, "data/gcg_eo_s09/prediction_NPV.tif", 
             datatype="INT1S", 
@@ -739,22 +958,29 @@ writeRaster(prediction_NPV, "data/gcg_eo_s09/prediction_NPV.tif",
 # mix of soil or photosynthetic vegetation. 
 
 
-#############################################################################
-# 4) Evaluation of fractional cover
-#############################################################################
+#Evaluation of fractional cover est----
 
-reference_data <- readOGR("data/gcg_eo_s09/s09_validation/Validation_scaled_20190726.shp")
-prediction_stack <-  (stack(c(prediction_NPV, prediction_PV, prediction_soil)))
-plot(prediction_stack)
+
+reference_data <- readOGR("validation/validation_poly.shp")
+
+reference_data <- as.data.frame(reference_data) %>%  na.omit() %>% 
+  mutate(MedShr = sum(MedShr, Ag),
+         NW = sum(UplGra,MngGra),
+         NV = sum(Soil,Imperv,Other)) %>% 
+  rename(layer.1  = Conifer,
+         layer.2 = Broadleaf,
+         layer.3= MedShr)
 
 # extracting our reference data points from prediction_NPV
-predictions_stack <- raster::extract(prediction_stack, reference_data, sp=TRUE)
+predictions_stack <- raster::extract(prediction_rf_tune_stack_hyperspec, reference_data, sp=TRUE)
 # nothing is negative or above one, so no adjustemts are needed here
-predictions_df <- as.data.frame(predictions_stack) %>% 
-  rename(NPV_predict = layer.1,
-         PV_predict = layer.2,
-         soil_predict = layer.3) %>% 
-  mutate(total_cover = NPV_predict + PV_predict + soil_predict)
+predictions_df <- as.data.frame(do.call("rbind", predictions_stack)) %>% 
+  rename(conifer_predict = layer.1,
+         decid_predict = layer.2,
+         shrub_predict = layer.3,
+         NW_predict = layer.4,
+         NV_predict = layer.5,) %>% 
+  mutate(total_cover = conifer_predict + decid_predict + shrub_predict + NW_predict + NV_predict)
 
 p1 <- ggplot(predictions_df, aes(NPV_predict, NPV_val)) +
   geom_point() +
