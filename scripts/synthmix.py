@@ -4,7 +4,6 @@
 import numpy as np
 import pandas as pd
 
-
 # linear-spectral-mixing analysis function
 def lsma(df, col_response=None, response_id=None, n=1000, within_class_mixture=True, response_mixture=False,
          includeEndmember=True, targetRange=(0, 1), mix_complexity=None, p_mix_complexity=None):
@@ -99,8 +98,9 @@ def lsma(df, col_response=None, response_id=None, n=1000, within_class_mixture=T
 
 
 # input
-input_csv = "/Users/shawn/Documents/humbolt/semester_02/EO_hyperspec/spectral_library/spectral_library_hyperspec"
-output_csv = ""  # string with .csv ending; file does not need to exist
+input_csv = "/Users/shawn/Documents/humbolt/semester_02/EO_hyperspec/spectral_library/spectral_library_hyperspec_extended"
+output_csv = "/Users/shawn/Documents/humbolt/semester_02/EO_hyperspec/spectral_library/spectral_library_hyperspec_extended.csv"
+  # string with .csv ending; file does not need to exist
 df = pd.read_csv(input_csv)  # .csv table
 '''
 - columns: one column holding class_id as integer (e.g., 1, 2, ..., n), the remaining columns are bands

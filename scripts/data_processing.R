@@ -620,10 +620,10 @@ df <- as.data.frame(hyperspec_df) %>%
 #sub(".Nanometers.", "", colnames(df))
 #sub(".*...", "", colnames(df))
 
-write.csv(df, file = "spectral_library/spectral_library_hyperspec")
+write.csv(df, file = "spectral_library/spectral_library_hyperspec_extended")
 
 # synthmix_hyperspec.csv created with python function "snythmix"
-sli_hyperspec <- read.csv("spectral_library/synthmix_hyperspec.csv")
+sli_hyperspec <- read.csv("spectral_library/spectral_library_hyperspec_extended.csv")
 
 sli_hyperspec_df <- sli_hyperspec %>% 
   dplyr::select(-class_ID) %>% 
@@ -715,7 +715,7 @@ for (i in 1:length(classes)) {
   svm <- svm_list[[i]]
   prediction_hyperspec <- predict(hyperspec, svm)
   classes[[i]] <- prediction_hyperspec
-  
+  print(paste("SVM Layer", i, "is done"))
 }
 
 prediction_conifer <- classes[[1]]
@@ -727,9 +727,13 @@ prediction_NV <- classes[[5]]
 prediction_stack_hyperspec <- stack(prediction_conifer, prediction_decid, prediction_shrub, 
                                     prediction_NW, prediction_NV)
 
-writeRaster(prediction_stack_hyperspec, "data/prediction_hyperspec.tif", 
+writeRaster(prediction_stack_hyperspec, "data/prediction_hyperspec_extended.tif", 
            # datatype="INT1S", 
-            overwrite=T)
+            #overwrite=T
+           )
+
+prediction_stack_hyperspec <- stack("data/prediction_hyperspec_extended.tif")
+plot(prediction_stack_hyperspec)
 
 # hyperspec random forest ----
 
@@ -749,8 +753,8 @@ rf_list <- sli_hyperspec_grouped %>% map(~ randomForest(fraction~.,
                                                         data = (.),
                                                         ntree= 1000))
 
-saveRDS(rf_list, file = "data/hyperspec_rf.rds")
-readRDS(file = "data/hyperspec_rf.rds")
+saveRDS(rf_list, file = "data/hyperspec_rf_extended.rds")
+readRDS(file = "data/hyperspec_rf_extended.rds")
 
 
 # Define accuracy from 5-fold cross-validation as optimization measure
@@ -762,8 +766,8 @@ rf.tune_list <- sli_hyperspec_grouped %>% map(~ randomForest(fraction~.,
                                                              ntree       = 1000, 
                                                              mtry        = c(64:65), 
                                                              tunecontrol = cv))
-saveRDS(rf.tune_list, file = "data/hyperspec_rf_tuned.rds")
-readRDS(file = "data/hyperspec_rf_tuned.rds")
+saveRDS(rf.tune_list, file = "data/hyperspec_rf_tuned_extended.rds")
+readRDS(file = "data/hyperspec_rf_tuned_extended.rds")
 
 # Store the best model in a new object for further use
 rf.best <- rf.tune$library(e1071)
@@ -793,9 +797,13 @@ prediction_rf_NV <- classes_rf[[5]]
 prediction_rf_tune_stack_hyperspec <- stack(prediction_rf_conifer, prediction_rf_decid, prediction_rf_shrub, 
                                        prediction_rf_NW, prediction_rf_NV)
 
-writeRaster(prediction_rf_tune_stack_hyperspec, "data/prediction_rf_tune_hyperspec.tif", 
+writeRaster(prediction_rf_tune_stack_hyperspec, "data/prediction_rf_tune_hyperspec_extended.tif", 
             # datatype="INT1S", 
-            overwrite=T)
+            overwrite=T
+            )
+
+prediction_rf_tune_stack_hyperspec_extended <- stack("data/prediction_rf_tune_hyperspec_extended.tif")
+plot(prediction_rf_tune_stack_hyperspec_extended)
 
 # landsat SVM ----
 
@@ -839,7 +847,7 @@ for (i in 1:length(classes)) {
   svm <- svm_list[[i]]
   prediction_landsat <- predict(full_stm_stack, svm)
   classes[[i]] <- prediction_landsat
-  
+  print(paste("SVM for class", i, "is done"))
 }
 
 prediction_conifer <- classes[[1]]
@@ -851,9 +859,13 @@ prediction_NV <- classes[[5]]
 prediction_stack_landsat <- stack(prediction_conifer, prediction_decid, prediction_shrub, 
                                     prediction_NW, prediction_NV)
 
-writeRaster(prediction_stack_landsat, "data/prediction_landsat.tif", 
+writeRaster(prediction_stack_landsat, "data/prediction_landsat_extended.tif", 
             # datatype="INT1S", 
-            overwrite=T)
+           # overwrite=T
+            )
+
+prediction_stack_landsat <- stack("data/prediction_landsat_extended.tif")
+plot(prediction_stack_landsat)
 
 # landsat random forest ----
 
@@ -873,7 +885,7 @@ rf_list <- sli_landsat_grouped %>% map(~ randomForest(fraction~.,
                                                         data = (.),
                                                         ntree= 1000))
 
-saveRDS(rf_list, file = "data/landsat_rf.rds")
+saveRDS(rf_list, file = "data/landsat_rf_extended.rds")
 readRDS(file = "data/landsat_rf.rds")
 
 
@@ -887,7 +899,7 @@ rf.tune_list <- sli_landsat_grouped %>% map(~ randomForest(fraction~.,
                                                              mtry        = c(17:18), 
                                                              tunecontrol = cv))
 
-saveRDS(rf.tune_list, file = "data/landsat_rf_tuned.rds")
+saveRDS(rf.tune_list, file = "data/landsat_rf_tuned_extended.rds")
 readRDS(file = "data/landsat_rf_tuned.rds")
 
 # Store the best model in a new object for further use
@@ -918,9 +930,13 @@ prediction_rf_NV <- classes_rf[[5]]
 prediction_rf_tune_stack_landsat <- stack(prediction_rf_conifer, prediction_rf_decid, prediction_rf_shrub, 
                                             prediction_rf_NW, prediction_rf_NV)
 
-writeRaster(prediction_rf_tune_stack_landsat, "data/prediction_rf_tuned_landsat.tif", 
+writeRaster(prediction_rf_tune_stack_landsat, "data/prediction_rf_tuned_landsat_extended.tif", 
             # datatype="INT1S", 
-            overwrite=T)
+            overwrite=T
+            )
+
+prediction_rf_tuned_landsat_extended <- stack("data/prediction_rf_tuned_landsat_extended.tif")
+plot(prediction_rf_tuned_landsat_extended)
 
 # difference betweem hyperspec and landsat tuned rf prediction
 diff <- overlay(prediction_rf_tune_stack_hyperspec,
@@ -930,13 +946,17 @@ diff_mean <- mean(diff)
 plot(diff)
 plot(diff_mean)
 
-writeRaster(diff, "data/prediction_rf_tuned_diff.tif", 
+writeRaster(diff, "data/prediction_rf_tuned_diff_extended.tif", 
             # datatype="INT1S", 
-            overwrite=T)
+            #overwrite=T
+            )
 
-writeRaster(diff_mean, "data/prediction_rf_tuned_diff_mean.tif", 
+writeRaster(diff_mean, "data/prediction_rf_tuned_diff_mean_extended.tif", 
             # datatype="INT1S", 
-            overwrite=T)
+            #overwrite=T
+            )
+
+
 
 
 # load in validation points from cooper et al 2020
@@ -948,7 +968,8 @@ plot(prediction_landsat)
 
 writeRaster(prediction_NPV, "data/gcg_eo_s09/prediction_NPV.tif", 
             datatype="INT1S", 
-            overwrite=T)
+            #overwrite=T
+            )
 
 # Based on this, can you identify fields in different stages of the crop 
 # phenology?
@@ -961,38 +982,176 @@ writeRaster(prediction_NPV, "data/gcg_eo_s09/prediction_NPV.tif",
 #Evaluation of fractional cover est----
 
 
-reference_data <- readOGR("validation/validation_poly.shp")
+reference_data <- readOGR("data/centroids.shp") # gis calculated centroids from sams validation polygons
 
-reference_data <- as.data.frame(reference_data) %>%  na.omit() %>% 
-  mutate(MedShr = sum(MedShr, Ag),
-         NW = sum(UplGra,MngGra),
-         NV = sum(Soil,Imperv,Other)) %>% 
-  rename(layer.1  = Conifer,
-         layer.2 = Broadleaf,
-         layer.3= MedShr)
+transformed_data <- as.data.frame(reference_data) %>%  na.omit() %>% 
+  mutate(across(c(Conifer:Other), as.numeric)) %>% 
+#  filter(IgnoreSite != "y") %>% 
+  mutate(MedShr = MedShr+ Ag,
+         NW = UplGra+MngGra,
+         NV = Soil+Imperv+Other) %>% 
+  rename(conifer  = Conifer,
+         decid = Broadleaf,
+         shrub= MedShr) %>% 
+  select(conifer, decid, shrub, NW, NV)
+
+reference_data@data <- transformed_data
+
 
 # extracting our reference data points from prediction_NPV
-predictions_stack <- raster::extract(prediction_rf_tune_stack_hyperspec, reference_data, sp=TRUE)
-# nothing is negative or above one, so no adjustemts are needed here
-predictions_df <- as.data.frame(do.call("rbind", predictions_stack)) %>% 
-  rename(conifer_predict = layer.1,
-         decid_predict = layer.2,
-         shrub_predict = layer.3,
-         NW_predict = layer.4,
-         NV_predict = layer.5,) %>% 
-  mutate(total_cover = conifer_predict + decid_predict + shrub_predict + NW_predict + NV_predict)
+predictions_stack <- raster::extract(prediction_rf_tune_stack_hyperspec, reference_data, sp=TRUE) 
 
-p1 <- ggplot(predictions_df, aes(NPV_predict, NPV_val)) +
-  geom_point() +
-  geom_abline(intercept = 0, slope = 1)
+valdation_df <- as.data.frame(predictions_stack) %>% 
+  rename(conifer_predict = prediction_rf_tune_hyperspec.1,
+         decid_predict = prediction_rf_tune_hyperspec.2,
+         shrub_predict = prediction_rf_tune_hyperspec.3,
+         NW_predict = prediction_rf_tune_hyperspec.4,
+         NV_predict = prediction_rf_tune_hyperspec.5) %>% 
+  mutate(across(c(conifer_predict:NV_predict), ~ .*100),
+         across(c(conifer_predict:NV_predict), round)) %>% 
+  select(-coords.x1, -coords.x2)
 
-p2 <- ggplot(predictions_df, aes(PV_predict, PV_val)) +
-  geom_point() +
-  geom_abline(intercept = 0, slope = 1)
+valdation_df$dens_conifer <- get_density(x=valdation_df$conifer, y=valdation_df$conifer_predict, n=100)
+valdation_df$dens_decid <- get_density(x=valdation_df$decid, y=valdation_df$decid_predict, n=100)
+valdation_df$dens_shrub <- get_density(x=valdation_df$shrub, y=valdation_df$shrub_predict, n=100)
+valdation_df$dens_NW <- get_density(x=valdation_df$NW, y=valdation_df$NW_predict, n=100)
+valdation_df$dens_NV <- get_density(x=valdation_df$NV, y=valdation_df$NV_predict, n=100)
 
-p3 <- ggplot(predictions_df, aes(soil_predict, soil_val)) +
+plot_validation <- function(data, class, class_predict){
+
+  ggplot(data, aes(x=substitute(class), y=substitute(class_predict))) +
+    geom_point()+
+    xlim(0,100) +
+    ylim(0,100) +
+    scale_color_viridis()+
+    geom_abline(aes(slope=1, intercept=0))+
+    geom_smooth(method="lm")+
+    annotate("text", x=1, y=100,
+             label= paste0("R2 =",round((cor(substitute(data$class),substitute(data$class_predict), use="complete.obs")^2),2)),
+             size=4.5, hjust=0)+
+    annotate("text", x= 1, y=95, hjust=0, size=4.5,
+             label= paste0("RMSE ==",round(sqrt(mean((substitute(data$class)-substitute(data$class_predict))^2, na.rm=TRUE)),2)),
+             parse=TRUE)+
+    annotate("text", x=1, y= 90, size=4.5, hjust=0,
+             label=paste0("Bias = ", round((mean(substitute(data$class), na.rm=TRUE) - mean(substitute(data$class_predict),na.rm=TRUE)),2)))+
+    annotate("text", x=1, y=85,size=4.5,hjust=0, label=paste0("MAE = ", round(mean(abs(substitute(data$class)- substitute(data$class_predict))),2))) 
+  
+  
+  
+  
+}
+
+plot_validation(valdation_df, conifer, conifer_predict)
+
+ ggplot(valdation_df, aes(x=conifer, y=conifer_predict)) +
+  geom_point()+
+  xlim(0,100) +
+  ylim(0,100) +
+  scale_color_viridis()+
+  geom_abline(aes(slope=1, intercept=0))+
+  geom_smooth(method="lm")+
+  annotate("text", x=1, y=100,
+           label= paste0("R2 =",round((cor(valdation_df$conifer,valdation_df$conifer_predict, use="complete.obs")^2),2)),
+           size=4.5, hjust=0)+
+  annotate("text", x= 1, y=95, hjust=0, size=4.5,
+           label= paste0("RMSE ==",round(sqrt(mean((valdation_df$conifer-valdation_df$conifer_predict)^2, na.rm=TRUE)),2)),
+           parse=TRUE)+
+  annotate("text", x=1, y= 90, size=4.5, hjust=0,
+           label=paste0("Bias = ", round((mean(valdation_df$conifer, na.rm=TRUE) - mean(valdation_df$conifer_predict,na.rm=TRUE)),2)))+
+  annotate("text", x=1, y=85,size=4.5,hjust=0, label=paste0("MAE = ", round(mean(abs(valdation_df$conifer - valdation_df$conifer_predict)),2))) 
+
+ggplot(valdation_df, aes(x=decid, y=decid_predict)) +
+  geom_point(#aes(color=dens_PV)
+  )+
+  xlim(0,100) +
+  ylim(0,100) +
+  scale_color_viridis()+
+  geom_abline(aes(slope=1, intercept=0))+
+  geom_smooth(method="lm")+
+  annotate("text", x=1, y=100,
+           label= paste0("R2 =",round((cor(valdation_df$decid,valdation_df$decid_predict, use="complete.obs")^2),2)),
+           size=4.5, hjust=0.5)+
+  annotate("text", x= -0.05, y=1, hjust=0, size=4.5,
+           label= paste0("RMSE ==",round(sqrt(mean((valdation_df$decid-valdation_df$decid_predict)^2, na.rm=TRUE)),2)),
+           parse=TRUE)+
+  annotate("text", x=-0.05, y= 0.9, size=4.5, hjust=0,
+           label=paste0("Bias = ", round((mean(valdation_df$decid, na.rm=TRUE) - mean(valdation_df$decid_predict,na.rm=TRUE)),2)))+
+  annotate("text", x=-0.05, y=0.8,size=4.5,hjust=0, label=paste0("MAE = ", round(mean(abs(valdation_df$decid - valdation_df$decid_predict)),2))) 
+
+ggplot(valdation_df, aes(x=shrub, y=shrub_predict)) +
+  geom_point(#aes(color=dens_PV)
+  )+
+  scale_color_viridis()+
+  geom_abline(aes(slope=1, intercept=0))+
+  geom_smooth(method="lm")+
+  annotate("text", x=-0.05, y=1.1,
+           label= paste0("R2 =",round((cor(valdation_df$shrub,valdation_df$shrub_predict, use="complete.obs")^2),2)),
+           size=4.5, hjust=0.5)+
+  annotate("text", x= -0.05, y=1, hjust=0, size=4.5,
+           label= paste0("RMSE ==",round(sqrt(mean((valdation_df$shrub-valdation_df$shrub_predict)^2, na.rm=TRUE)),2)),
+           parse=TRUE)+
+  annotate("text", x=-0.05, y= 0.9, size=4.5, hjust=0,
+           label=paste0("Bias = ", round((mean(valdation_df$shrub, na.rm=TRUE) - mean(valdation_df$shrub_predict,na.rm=TRUE)),2)))+
+  annotate("text", x=-0.05, y=0.8,size=4.5,hjust=0, label=paste0("MAE = ", round(mean(abs(valdation_df$shrub - valdation_df$shrub_predict)),2))) 
+
+ggplot(valdation_df, aes(x=NW, y=NW_predict)) +
+  geom_point(#aes(color=dens_PV)
+  )+
+  xlim(0,100) +
+  ylim(0,100) +
+  scale_color_viridis()+
+  geom_abline(aes(slope=1, intercept=0))+
+  geom_smooth(method="lm")+
+  annotate("text", x=1, y=100,
+           label= paste0("R2 =",round((cor(valdation_df$NW,valdation_df$NW_predict, use="complete.obs")^2),2)),
+           size=4.5, hjust=0.5)+
+  annotate("text", x= -0.05, y=1, hjust=0, size=4.5,
+           label= paste0("RMSE ==",round(sqrt(mean((valdation_df$NW-valdation_df$NW_predict)^2, na.rm=TRUE)),2)),
+           parse=TRUE)+
+  annotate("text", x=-0.05, y= 0.9, size=4.5, hjust=0,
+           label=paste0("Bias = ", round((mean(valdation_df$NW, na.rm=TRUE) - mean(valdation_df$NW_predict,na.rm=TRUE)),2)))+
+  annotate("text", x=-0.05, y=0.8,size=4.5,hjust=0, label=paste0("MAE = ", round(mean(abs(valdation_df$NW - valdation_df$NW_predict)),2))) 
+
+ggplot(valdation_df, aes(x=NV, y=NV_predict)) +
+  geom_point(#aes(color=dens_PV)
+  )+
+  xlim(0,100) +
+  ylim(0,100) +
+  scale_color_viridis()+
+  geom_abline(aes(slope=1, intercept=0))+
+  geom_smooth(method="lm")+
+  annotate("text", x=1, y=100,
+           label= paste0("R2 =",round((cor(valdation_df$NV,valdation_df$NV_predict, use="complete.obs")^2),2)),
+           size=4.5, hjust=0.5)+
+  annotate("text", x= 1, y=80, hjust=0, size=4.5,
+           label= paste0("RMSE ==",round(sqrt(mean((valdation_df$NV-valdation_df$NV_predict)^2, na.rm=TRUE)),2)),
+           parse=TRUE)+
+  annotate("text", x=-0.05, y= 0.9, size=4.5, hjust=0,
+           label=paste0("Bias = ", round((mean(valdation_df$NV, na.rm=TRUE) - mean(valdation_df$NV_predict,na.rm=TRUE)),2)))+
+  annotate("text", x=-0.05, y=0.8,size=4.5,hjust=0, label=paste0("MAE = ", round(mean(abs(valdation_df$NV - valdation_df$NV_predict)),2))) 
+
+
+
+ggplot(valdation_df, aes(conifer, conifer_predict)) +
   geom_point() +
-  geom_abline(intercept = 0, slope = 1)
+  xlim(0,100) +
+  ylim(0,100) +
+  geom_abline(intercept = 0, slope = 1) + 
+  theme_classic()
+
+ggplot(valdation_df, aes(decid, decid_predict)) +
+  geom_point() +
+  xlim(0,100) +
+  ylim(0,100) +
+  geom_abline(intercept = 0, slope = 1) + 
+  theme_classic()
+
+ggplot(valdation_df, aes(NV, NV_predict)) +
+  geom_point() +
+  xlim(0,100) +
+  ylim(0,100) +
+  geom_abline(intercept = 0, slope = 1) + 
+  theme_classic()
 
 library("gridExtra") 
 grid.arrange(p1,p2,p3)
