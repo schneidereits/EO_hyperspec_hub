@@ -43,3 +43,13 @@ prediction_rf_tune_hyperspec.tif
 prediction_rf_tuned_diff.tif
 prediction_rf_tuned_diff_mean.tif
 prediction_rf_tuned_landsat.tif
+hyperspec_rf_extended.rds
+hyperspec_rf_tuned_extended.rds
+landsat_rf_extended.rds
+landsat_rf_tuned_extended.rds
+prediction_hyperspec_extended.tif
+prediction_landsat_extended.tif
+prediction_rf_tune_hyperspec_extended.tif
+prediction_rf_tuned_diff_extended.tif
+prediction_rf_tuned_diff_mean_extended.tif
+prediction_rf_tuned_landsat_extended.tif
