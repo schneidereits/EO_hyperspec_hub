@@ -1,0 +1,13 @@
+- more for Oeser et al., 2017:
+    • intra-annual STMs 
+        ◦ regarding forest classification used similar (same?) intra-annual STMs as we do (nice results)
+        ◦ regarding disturbance classification etc. used different metrics
+    • forest disturbance context
+    • potential of additional metrics (e. g. regarding topography [for e. g. effect of windthrow)
+    • Landsat (TM, ETM+, OLI)
+    • also used TCT (but maybe in special way?)
+
+- Cited in text:
+Lucht, W., C. B. Schaaf, and A. H. Strahler. 2000. “An Algorithm for the Retrieval of Albedo from
+Space Using Semiempirical BRDF Models.” IEEE Transactions on Geoscience and Remote Sensing
+38 (2): 977–998. doi:10.1109/36.841980.
